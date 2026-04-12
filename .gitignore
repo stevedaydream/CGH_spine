@@ -1,0 +1,19 @@
+# ── 敏感資訊 ──────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+secret.md
+
+# ── Node / Vue ─────────────────────────────────────────
+node_modules/
+vue-app/node_modules/
+vue-app/dist/
+
+# ── Cloudflare / Netlify ───────────────────────────────
+.wrangler/
+.netlify/
+
+# ── 系統 ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
