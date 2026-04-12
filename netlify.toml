@@ -1,0 +1,8 @@
+[build]
+  command = "cd vue-app && npm run build"
+  publish = "vue-app/dist"
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

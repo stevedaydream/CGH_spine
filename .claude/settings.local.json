@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(netlify --version)",
+      "Bash(npm run:*)",
+      "Bash(netlify deploy:*)",
+      "Bash(netlify sites:list:*)",
+      "Bash(netlify api:*)",
+      "Bash(netlify sites:create --name spine-cgh-tw-2026-v1 --account-slug cgh9anp)",
+      "Bash(wrangler:*)"
+    ]
+  }
+}
