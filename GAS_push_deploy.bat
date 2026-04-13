@@ -42,7 +42,7 @@ for /f "tokens=1-2 delims=:" %%a in ("%time: =0%") do (
 set DESC=%YY%%MM%%DD%_%HH%%MIN%
 
 echo [clasp push]
-clasp push --force
+call clasp push --force
 if %errorlevel% neq 0 (
     echo.
     echo [FAILED] clasp push failed.
@@ -53,7 +53,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo [clasp deploy]
-clasp deploy --deploymentId AKfycbxRZHwOH8LNA-SgYJUiDcG62cWfcdALQrH8fJYyFcbfR42T6u-up_xlPfsutZnUKam8Ng --description "%DESC%"
+call clasp deploy --deploymentId AKfycbxRZHwOH8LNA-SgYJUiDcG62cWfcdALQrH8fJYyFcbfR42T6u-up_xlPfsutZnUKam8Ng --description "%DESC%"
 if %errorlevel% neq 0 (
     echo.
     echo [FAILED] clasp deploy failed.
@@ -73,11 +73,10 @@ echo =========================================
 echo   Local development  (vue-app)
 echo =========================================
 echo.
-echo Starting Vite dev server. Press Ctrl+C to stop and return to menu.
+echo Dev server will open in a new window.
+echo Close that window to stop the server.
 echo.
-cd /d "%~dp0vue-app"
-npm run dev
-cd /d "%~dp0"
+start "Vite Dev Server" cmd /k "cd /d "%~dp0vue-app" && npm run dev"
 pause
 goto MENU
 

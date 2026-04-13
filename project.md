@@ -1,330 +1,438 @@
-# 專案藍圖 Lite：智慧化脊椎手術追蹤系統（輕量版）
+# 專案藍圖：智慧化脊椎手術追蹤系統
 
-> **版本**：V1（Google Sheets 核心架構）｜**更新日期**：2026-04-12  
-> **定位**：以 Google Sheets + GAS + Line Bot 為核心，零 App 開發成本，快速部署的臨床數據追蹤方案。  
-> **適用階段**：MVP 驗證期 → 可平滑升級至 V4 完整架構
+> **版本**：V2.1（Vue 3 + GAS + Google Sheets）｜**更新日期**：2026-04-13
+> **定位**：Vue 3（Cloudflare Pages）為醫護前端、Google Apps Script 為後端 API、Google Sheets 為資料庫、LINE Bot 為病患輸入介面的臨床數據追蹤方案。
 
 ---
 
 ## 目錄
 
-1. [方案概覽](#1-方案概覽)
-2. [資料表結構設計](#2-資料表結構設計)
-3. [自動化追蹤邏輯](#3-自動化追蹤邏輯)
-4. [三端輸入方式](#4-三端輸入方式)
-5. [AI 分析與統計回饋](#5-ai-分析與統計回饋)
-6. [資安與合規設計](#6-資安與合規設計)
-7. [數據品質保障機制](#7-數據品質保障機制)
-8. [實施步驟](#8-實施步驟)
-9. [技術架構總覽](#9-技術架構總覽)
+1. [實際技術架構](#1-實際技術架構)
+2. [Vue 前端（已實作）](#2-vue-前端已實作)
+3. [GAS 後端（已實作）](#3-gas-後端已實作)
+4. [Google Sheets 資料表結構](#4-google-sheets-資料表結構)
+5. [LINE Bot 問卷流程（規劃中）](#5-line-bot-問卷流程規劃中)
+6. [Gemini 自然語言對話（規劃中）](#6-gemini-自然語言對話規劃中)
+7. [統計分析設計（規劃中）](#7-統計分析設計規劃中)
+8. [資安與合規設計](#8-資安與合規設計)
+9. [升級路徑](#9-升級路徑)
 
 ---
 
-## 1. 方案概覽
+## 1. 實際技術架構
 
-### 設計原則
+```
+┌──────────────────────────────────────────────────────────┐
+│  Vue 3 + Vite（Cloudflare Pages）                         │
+│  ├ DashboardView  — 醫護後台（AI確認 + 病患追蹤列表）      │
+│  ├ FormView       — 填表（Tab A 手術登錄 / Tab B 回診記錄） │
+│  ├ AnalyticsView  — 分析儀表板（Chart.js 圖表）            │
+│  └ [規劃] McidView — MCID 統計 + K-M 資料匯出             │
+└────────────────┬─────────────────────────────────────────┘
+                 │ HTTPS fetch（JSON）
+┌────────────────▼─────────────────────────────────────────┐
+│  Google Apps Script Web App（doGet REST API）             │
+│  ├ WebApp.gs       — API 路由、getDashboardData            │
+│  ├ FormHandler.gs  — addOperationRecord / addFollowUp     │
+│  ├ ReviewHandler.gs— approveRecordByRow / rejectRecord    │
+│  ├ LineWebhook.gs  — LINE Bot Webhook（doPost）           │
+│  ├ GeminiAPI.gs    — Gemini API 語意解析                  │
+│  ├ DailyScheduler.gs— 每日 08:00 推播排程（GAS Trigger）  │
+│  ├ WeeklyAnalysis.gs— 每週一分析（GAS Trigger）           │
+│  └ Config.gs       — 分頁名稱、欄位索引常數               │
+└────────────────┬─────────────────────────────────────────┘
+                 │ SpreadsheetApp（原生，無需憑證）
+┌────────────────▼─────────────────────────────────────────┐
+│  Google Sheets（6 個分頁，見第 4 章）                      │
+└──────────────────────────────────────────────────────────┘
 
-| 原則 | 說明 |
+個資保護層（獨立 Google Drive，PRIVACY_TABLE_ID）
+└── research_id ↔ 姓名 / LINE UID 對照表
+```
+
+### 部署設定
+
+| 元件 | 工具 | 設定方式 |
+|------|------|---------|
+| 前端 | Cloudflare Pages | `.wrangler/` 設定，GitHub 推送自動部署 |
+| 後端 | GAS Web App | `clasp push`，Script Properties 存密鑰 |
+| 環境變數（GAS） | Script Properties | `LINE_CHANNEL_ACCESS_TOKEN`、`GEMINI_API_KEY`、`ADMIN_EMAIL`、`DOCTOR_EMAIL`、`PRIVACY_TABLE_ID` |
+
+---
+
+## 2. Vue 前端（已實作）
+
+### 目前頁面結構
+
+```
+/ (DashboardView)  — 醫護後台
+/form (FormView)   — 填表介面
+/analytics (AnalyticsView) — 分析儀表板
+```
+
+### DashboardView（醫護後台）
+
+**統計卡片（4 個）：** 總病患數 / 追蹤中 / 平均完整度 / 待確認數
+
+**AI 暫存待確認區：**
+- 顯示所有 `review_status = pending` 的記錄
+- 每列顯示：研究編號、原始訊息（截斷）、AI 解讀 VAS（色圓 pill）、AI 摘要、解析時間
+- 操作：核准（→ 移入追蹤日誌）、拒絕
+
+**病患追蹤列表：**
+- 欄位：研究編號 / 手術日期 / 手術類型 / Cage / 術後天數 / LINE 狀態 / 最後 VAS / 追蹤完整度（進度條）
+- VAS 以色圓 pill 顯示（綠 0 → 紅 10）
+- 完整度 = 實填次數 / 應填次數，依推播排程天數計算
+
+### FormView（填表）
+
+Bootstrap Tabs 分兩頁：
+
+**Tab A — 新病患手術登錄（`addOperationRecord`）**
+
+| 區塊 | 欄位 |
 |------|------|
-| 低成本 | 全程使用 Google 免費工具，無需自建伺服器 |
-| 快速部署 | 第一版可在 2 週內上線 |
-| 合規優先 | 個資保護設計內建，非事後補加 |
-| 可升級 | 數據結構與 V4 完整版相容，未來可無縫遷移 |
+| 基本資料 | 研究編號（自動帶入下一號）、手術日期、主刀醫師、介入組別 |
+| 術式 | 手術類型（下拉）、手術節段 |
+| 耗材 | Cage 代碼（datalist）、骨移植（下拉）|
+| 術前 VAS | VAS 背 / VAS 腿（VasInput 元件，0–10 按鈕）|
+| 進階（可展開）| 術前 ODI、SVA、Cobb、Screw 代碼、其他耗材、手術時間、EBL、術中併發症 |
 
-### 工具組合
+**Tab B — 門診回診記錄（`addFollowUpRecord`）**
 
-```
-Google Sheets   → 核心資料庫
-Google Forms    → 醫護端輸入介面（第一階段）
-AppSheet        → 醫護端 App 介面（第二階段升級）
-Google Apps Script (GAS) → 自動化排程、Line Bot 串接、AI 分析
-Line Messaging API → 病患端推播與回覆
-Gemini API      → 自然語言解析、AI 回饋生成
-```
+| 欄位 | 說明 |
+|------|------|
+| 研究編號 | datalist 選擇（已有病患）|
+| VAS 背 / 腿 | VasInput 元件 |
+| 功能狀態描述 | 文字（ODI 相關，目前為非結構化）|
+| 傷口狀況 | 文字 |
 
----
+> Tab A 送出後自動帶入 Tab B 的研究編號，便於術後立即填第一筆回診記錄。
 
-## 2. 資料表結構設計
-
-> 單一 Spreadsheet，包含以下 **六個分頁**。
-
----
-
-### 分頁 1：【耗材代碼表】
-
-> 所有下拉選單的來源，確保輸入標準化，解決自由文字造成的統計合併問題。
-
-| 欄位 | 說明 | 範例 |
-|------|------|------|
-| `implant_code` | 耗材唯一代碼 | `CAGE-TLIF-10` |
-| `implant_name` | 完整名稱 | TLIF Cage 10mm |
-| `category` | 分類 | Cage / Screw / Bone Graft / Cement |
-| `brand` | 廠牌 | （自行填入） |
-| `note` | 備註 | — |
-
----
-
-### 分頁 2：【手術記錄表】
-
-> 醫護端術後填寫，為所有追蹤的基準資料。**僅存研究編號，不存姓名。**
-
-| 欄位類別 | 欄位名稱 | 類型 | 備註 |
-|----------|----------|------|------|
-| **識別** | `research_id` | 文字 | 匿名研究編號，如 `SP-2026-001` |
-| **識別** | `op_date` | 日期 | 手術日期，用於計算追蹤天數 |
-| **識別** | `surgeon` | 下拉 | 主刀醫師代碼 |
-| **術前** | `pre_vas_back` | 數字 | 術前 VAS（背）0-10 |
-| **術前** | `pre_vas_leg` | 數字 | 術前 VAS（腿）0-10 |
-| **術前** | `pre_odi` | 數字 | 術前 ODI 指數 |
-| **術前** | `pre_sva` | 數字 | 影像參數 SVA（mm） |
-| **術前** | `pre_cobb` | 數字 | 影像參數 Cobb Angle（度） |
-| **手術** | `op_name` | 下拉 | TLIF / Endoscopic / PLIF… |
-| **手術** | `op_levels` | 文字 | 如 `L4-L5` |
-| **手術** | `op_duration` | 數字 | 手術時間（分鐘） |
-| **手術** | `ebl` | 數字 | 失血量（mL） |
-| **耗材** | `cage_code` | 下拉 | 來自耗材代碼表 |
-| **耗材** | `screw_code` | 下拉 | 來自耗材代碼表 |
-| **耗材** | `bone_graft` | 下拉 | 骨髓 / 骨水泥 / 人工骨 / 無 |
-| **耗材** | `other_implant` | 下拉（多選） | 其他耗材代碼 |
-| **結果** | `complication` | 文字 | 術中併發症（無則留空） |
-| **系統** | `line_status` | 下拉 | `active / blocked / unbound` |
-| **系統** | `intervention_group` | 下拉 | `line_bot / control / partial` |
-
----
-
-### 分頁 3：【術後追蹤日誌】
-
-> **只新增不修改**（Append-only）設計，每次更新都是新一列，保留完整溯源記錄。
-
-| 欄位名稱 | 來源 | 說明 |
-|----------|------|------|
-| `log_id` | 自動 | 唯一流水號 |
-| `research_id` | 關聯 | 對應手術記錄表 |
-| `log_datetime` | 自動 | 填寫時間戳 |
-| `days_post_op` | 公式 | `=log_date - op_date` |
-| `vas_back` | 輸入 | VAS 背痛 0-10 |
-| `vas_leg` | 輸入 | VAS 腿痛 0-10 |
-| `odi_description` | 輸入 | 功能描述（文字） |
-| `wound_status` | 輸入 | 傷口狀況描述 |
-| `raw_message` | Line Bot | 病患原始訊息 |
-| `record_type` | 系統 | `direct / ai_parsed / amended` |
-| `confirmed` | 醫護 | `TRUE / FALSE`（是否已醫護確認） |
-
----
-
-### 分頁 4：【AI 暫存待確認區】
-
-> Gemini 解析結果的緩衝區，**醫護確認後才移入正式追蹤日誌**，避免 AI 誤判直接入庫。
-
-| 欄位名稱 | 說明 |
-|----------|------|
-| `research_id` | 病患研究編號 |
-| `raw_message` | 病患 Line 原始訊息 |
-| `ai_vas_back` | AI 解讀的 VAS 背痛 |
-| `ai_vas_leg` | AI 解讀的 VAS 腿痛 |
-| `ai_summary` | AI 生成的狀況摘要 |
-| `ai_parsed_at` | 解析時間 |
-| `review_status` | `pending / approved / rejected` |
-| `reviewed_by` | 確認者帳號 |
-| `reviewed_at` | 確認時間 |
-
----
-
-### 分頁 5：【推播排程 Log】
-
-> 追蹤每次推播狀態，防止重複推播，並記錄失敗原因。
-
-| 欄位名稱 | 說明 |
-|----------|------|
-| `research_id` | 病患研究編號 |
-| `scheduled_day` | 計畫推播天數（如 `7`） |
-| `scheduled_date` | 計畫推播日期 |
-| `sent_at` | 實際發送時間 |
-| `status` | `sent / failed / skipped` |
-| `skip_reason` | `holiday / line_blocked / already_sent` |
-| `error_message` | 失敗原因（如有） |
-
----
-
-### 分頁 6：【AI 分析區】
-
-> 點擊「生成分析」按鈕後，GAS 自動統計並填入結果。
+### AnalyticsView（分析儀表板）
 
 | 區塊 | 內容 |
 |------|------|
-| 耗材效益比較 | 各 Cage 規格 vs VAS 改善率（含樣本數警示） |
-| 手術方式比較 | TLIF vs Endoscopic 術後恢復趨勢 |
-| 追蹤完整度 | 各病患應填 vs 實填次數、完整度 % |
-| 缺失警示 | 完整度 < 50% 標紅，50-79% 標黃 |
-| 匯出功能 | 一鍵匯出 SPSS/STATA 相容 CSV（僅含 `confirmed=TRUE` 數據） |
+| 統計卡片 | 同 Dashboard 4 卡 |
+| 耗材效益比較 | Bar chart：各 Cage VAS 改善分數（n<15 標黃）|
+| 手術方式 VAS 趨勢 | Line chart：D7 / D14 / D28 平均 VAS（多線）|
+| 追蹤完整度表格 | 每人應填/實填/完整度/連續未回覆次數 |
+| 耗材效益明細表 | 術前 VAS / 術後14天 VAS / 改善率 / 警示 |
+| CSV 匯出按鈕 | 呼叫 GAS `exportCsv()`，寫出至 Google Drive |
 
-> ⚠️ **樣本數警示規則**：任一比較組 n < 15 時，自動顯示「樣本量不足（n=X），結論僅供參考，請勿用於正式發表。」
+### VasInput 元件
+
+0–10 的按鈕群組，選中後高亮，雙向綁定 v-model。
 
 ---
 
-## 3. 自動化追蹤邏輯
+## 3. GAS 後端（已實作）
 
-### 追蹤頻率排程
+### API 端點（doGet + action 參數）
 
-| 術後期間 | 推播頻率 | 推播天數 |
-|----------|----------|----------|
-| 第 1 週 | 兩天一次 | 第 1, 3, 5, 7 天 |
-| 第 2 週 | 三天一次 | 第 10, 13 天 |
-| 第 3 週 | 四天一次 | 第 17, 21 天 |
-| 第 4 週起 | 每週一次 | 第 28, 35, 42… 天 |
+| action | 功能 | 對應 Vue |
+|--------|------|---------|
+| `getDashboardData` | pending 記錄 + 病患列表 + 摘要 | DashboardView |
+| `getAnalyticsData` | 圖表資料 + 完整度 | AnalyticsView |
+| `getFormOptions` | 病患 ID 列表、Cage 清單、下一編號 | FormView |
+| `addOperationRecord` | 寫入手術記錄表 | FormView Tab A |
+| `addFollowUpRecord` | 寫入術後追蹤日誌（直接，confirmed=TRUE）| FormView Tab B |
+| `approveRecord` | AI 暫存 → 追蹤日誌 | DashboardView |
+| `rejectRecord` | 標記 rejected | DashboardView |
+| `exportCsv` | 匯出 confirmed=TRUE 資料至 Drive | AnalyticsView |
 
-### GAS 推播排程器邏輯
+### LINE Bot（doPost）✅ 已走通
+
+`LineWebhook.gs` 接收 LINE webhook → 呼叫 `GeminiAPI.gs` 解析 → 寫入 AI 暫存待確認區。
+
+目前為**自由文字解析模式（已上線）**，下一步升級為 14 步結構化 Quick Reply 問卷。
+
+### GAS Triggers
+
+| 觸發器 | 時間 | 功能 |
+|--------|------|------|
+| `dailyPushScheduler` | 每日 08:00 | 依推播排程天數發送 LINE 推播 |
+| `weeklyAnalysis` | 每週一 09:00 | 統計分析 + Email 主責醫師 |
+
+### 推播排程天數（Config.gs）
 
 ```javascript
-// 每天 08:00 觸發
-function dailyPushScheduler() {
-  const sheet = SpreadsheetApp.getActive().getSheetByName('手術記錄表');
-  const logSheet = SpreadsheetApp.getActive().getSheetByName('推播排程Log');
-  const today = new Date();
-
-  const patients = sheet.getDataRange().getValues();
-
-  patients.forEach(row => {
-    const researchId  = row[COL.RESEARCH_ID];
-    const opDate      = new Date(row[COL.OP_DATE]);
-    const lineStatus  = row[COL.LINE_STATUS];  // active / blocked / unbound
-    const daysPostOp  = Math.floor((today - opDate) / 86400000);
-
-    // 防呆：未綁定或封鎖則跳過
-    if (lineStatus !== 'active') {
-      appendLog(logSheet, researchId, daysPostOp, 'skipped', lineStatus);
-      return;
-    }
-
-    // 判斷今天是否為推播日
-    if (!isScheduledDay(daysPostOp)) return;
-
-    // 防重複：確認今天是否已推播過
-    if (alreadySentToday(logSheet, researchId, today)) {
-      appendLog(logSheet, researchId, daysPostOp, 'skipped', 'already_sent');
-      return;
-    }
-
-    // 個人化訊息（帶入上次數據）
-    const lastRecord = getLastRecord(researchId);
-    const message = buildMessage(researchId, daysPostOp, lastRecord);
-
-    // 發送 Line 推播
-    const success = sendLineMessage(researchId, message);
-    appendLog(logSheet, researchId, daysPostOp, success ? 'sent' : 'failed', '');
-  });
-}
-
-function isScheduledDay(days) {
-  const schedule = [1,3,5,7,10,13,17,21,28,35,42,49,56,63,70,77,84];
-  return schedule.includes(days);
-}
-```
-
-### 個人化推播訊息範例
-
-```
-哲瑋先生您好，今天是術後第 7 天 🌿
-
-上次您提到腰部還有些緊繃（VAS 3），
-今天感覺如何呢？
-
-請直接用說的告訴我，例如：
-「腳不痛了，腰還有點緊」
-
-或直接回覆數字：
-背痛 ___ 分 / 腿痛 ___ 分（0-10）
+PUSH_SCHEDULE_DAYS = [1, 3, 5, 7, 10, 13, 17, 21, 28, 35, 42, 49, 56, 63, 70, 77, 84]
+// 共 17 個時間點，追蹤至術後第 84 天（Week 12）
 ```
 
 ---
 
-## 4. 三端輸入方式
+## 4. Google Sheets 資料表結構
 
-### 醫護端
+> 目前共 **6 個分頁**（已實作），另有 **2 個規劃中分頁**。
 
-| 階段 | 工具 | 說明 |
+---
+
+### 分頁 1：耗材代碼表（已實作）
+
+| 欄位 | 說明 |
+|------|------|
+| `implant_code` | 耗材唯一代碼（下拉選單來源）|
+| `implant_name` | 完整名稱 |
+| `category` | Cage / Screw / Bone Graft / Cement |
+| `brand` | 廠牌 |
+| `note` | 備註 |
+
+---
+
+### 分頁 2：手術記錄表（已實作）
+
+| 欄位（Col 索引）| 說明 |
+|----------------|------|
+| `research_id` (0) | 匿名研究編號，如 `SP-2026-001` |
+| `op_date` (1) | 手術日期 |
+| `surgeon` (2) | 主刀醫師 |
+| `pre_vas_back` (3) | 術前 VAS 背 |
+| `pre_vas_leg` (4) | 術前 VAS 腿 |
+| `pre_odi` (5) | 術前 ODI（數字，0–100）|
+| `pre_sva` (6) | SVA (mm) |
+| `pre_cobb` (7) | Cobb Angle (°) |
+| `op_name` (8) | 手術類型（TLIF / Endoscopic TLIF / PLIF…）|
+| `op_levels` (9) | 手術節段（如 L4-L5）|
+| `op_duration` (10) | 手術時間（分鐘）|
+| `ebl` (11) | 失血量（mL）|
+| `cage_code` (12) | Cage 代碼 |
+| `screw_code` (13) | Screw 代碼 |
+| `bone_graft` (14) | 骨移植方式 |
+| `other_implant` (15) | 其他耗材 |
+| `complication` (16) | 術中併發症 |
+| `line_status` (17) | `active / blocked / unbound` |
+| `intervention_group` (18) | `line_bot / control / partial` |
+
+---
+
+### 分頁 3：術後追蹤日誌（已實作，長表格）
+
+> **Append-only**，每次回報一列。術後天數由 GAS 自動計算。
+
+| 欄位（Col 索引）| 說明 |
+|----------------|------|
+| `log_id` (0) | 唯一流水號 |
+| `research_id` (1) | 對應手術記錄表 |
+| `log_datetime` (2) | 填寫時間戳 |
+| `days_post_op` (3) | 術後天數（GAS 計算）|
+| `vas_back` (4) | VAS 背痛 0–10 |
+| `vas_leg` (5) | VAS 腿痛 0–10 |
+| `odi_description` (6) | 功能狀態描述（目前為文字）|
+| `wound_status` (7) | 傷口狀況 |
+| `raw_message` (8) | LINE Bot 原始訊息 |
+| `record_type` (9) | `direct / ai_parsed / amended` |
+| `confirmed` (10) | `TRUE / FALSE`（醫護確認）|
+
+> **待改善**：`odi_description` 目前為非結構化文字，無法用於 MCID 計算。規劃改為數值欄位 `odi_score`（0–100），或新增欄位並保留舊欄位。
+
+---
+
+### 分頁 4：AI 暫存待確認區（已實作）
+
+| 欄位（Col 索引）| 說明 |
+|----------------|------|
+| `research_id` (0) | 病患研究編號 |
+| `raw_message` (1) | LINE 原始訊息 |
+| `ai_vas_back` (2) | Gemini 解讀 VAS 背 |
+| `ai_vas_leg` (3) | Gemini 解讀 VAS 腿 |
+| `ai_summary` (4) | AI 摘要 |
+| `ai_parsed_at` (5) | 解析時間 |
+| `review_status` (6) | `pending / approved / rejected` |
+| `reviewed_by` (7) | 確認者帳號 |
+| `reviewed_at` (8) | 確認時間 |
+
+---
+
+### 分頁 5：推播排程 Log（已實作）
+
+| 欄位（Col 索引）| 說明 |
+|----------------|------|
+| `research_id` (0) | 病患研究編號 |
+| `scheduled_day` (1) | 計畫推播天數（如 `7`）|
+| `scheduled_date` (2) | 計畫推播日期 |
+| `sent_at` (3) | 實際發送時間 |
+| `status` (4) | `sent / failed / skipped` |
+| `skip_reason` (5) | `holiday / line_blocked / already_sent` |
+| `error_message` (6) | 失敗原因 |
+
+---
+
+### 分頁 6：AI 分析區（已實作）
+
+GAS WeeklyAnalysis.gs 計算後寫入，含耗材效益、手術方式比較、追蹤完整度。
+
+---
+
+### 分頁 7：統計分析區【規劃中】
+
+> 自動從分頁 2、3 拉取，以 D84（TP-17）為主要終點計算 MCID。
+
+#### 區塊 A — MCID 達成總表（每人一列）
+
+| 欄位 | 公式 |
+|------|------|
+| `vas_back_improvement` | `= pre_vas_back - post_vas_D84` |
+| `vas_back_mcid` | `= IF(改善 >= 2.5, "✅ Success", "❌ Fail")` |
+| `odi_improvement_pct` | `= pre_odi% - post_odi%_D84` |
+| `odi_mcid` | `= IF(改善 >= 12.8%, "✅ Success", "❌ Fail")` |
+| `vas_improvement_rate` | `= 改善 / 術前 * 100%` |
+
+#### 區塊 B — PASS 達成天數（K-M 原始資料）
+
+| 欄位 | 說明 |
+|------|------|
+| `pass_achieved` | TRUE / FALSE |
+| `days_to_pass` | 首次 VAS_back ≤ 3 的術後天數 |
+| `censored` | 追蹤結束仍未達 PASS |
+
+#### 區塊 C — 統計模型備忘
+
+```
+【LMM】依變數 VAS、固定效應 time × group、隨機效應 by research_id
+       工具：R lme4 / SPSS Mixed
+
+【K-M】 事件：VAS_back ≤ 3；截尾：追蹤結束未達 PASS
+        工具：R survival / SPSS KM
+```
+
+#### 區塊 D — 摘要統計
+
+MCID 達成率、平均改善率、樣本數警示（n < 15 → ⚠️）
+
+---
+
+### 分頁 8：對話狀態表【規劃中】
+
+> 解決 LINE Bot 14 步問卷的無狀態問題。GAS 每次 webhook 查此表取得進度。
+
+| 欄位 | 說明 |
+|------|------|
+| `line_uid` | LINE User ID |
+| `research_id` | 對應研究編號 |
+| `current_step` | `idle / vas_back / vas_leg / odi_q1…odi_q10 / pass / anchor_q / done / chat` |
+| `session_data` | JSON 文字，暫存本次累積分數 |
+| `tp_target` | 本次對應時間點（如 `D7`）|
+| `last_active` | 最後活動時間，逾 24h 自動重置 |
+
+---
+
+## 5. LINE Bot 問卷流程（規劃中）
+
+> 目前 `LineWebhook.gs` 僅實作自由文字 → Gemini 解析。
+> 以下為規劃的 14 步結構化問卷升級方向。
+
+### 14 步問卷流程
+
+| 步驟 | 問題 | 輸入方式 |
+|------|------|---------|
+| 1 | VAS 背痛（0–10）| Quick Reply 按鈕 |
+| 2 | VAS 腿痛（0–10）| Quick Reply 按鈕 |
+| 3–12 | ODI Q1–Q10（各 6 選項，0–5 分）| Quick Reply 按鈕 |
+| 13 | PASS（現在的狀態您可以接受嗎？）| Quick Reply Y / N |
+| 14 | 定錨問題（整體改善感受，1–7 分）| Quick Reply 按鈕 |
+
+### ODI 10 題評估面向
+
+| 題號 | 面向 | 題號 | 面向 |
+|------|------|------|------|
+| Q1 | 疼痛強度 | Q6 | 站立耐受 |
+| Q2 | 個人照護 | Q7 | 睡眠品質 |
+| Q3 | 提重物 | Q8 | 社交活動 |
+| Q4 | 行走距離 | Q9 | 旅行交通 |
+| Q5 | 坐姿耐受 | Q10 | 職業家務 |
+
+### ODI 計分
+
+```
+ODI 原始分 = Q1+…+Q10（0–50）
+ODI 百分比 = 原始分 ÷ 50 × 100%
+MCID 達成  = 術前 ODI% - 術後 ODI% ≥ 12.8%
+```
+
+### 訊息流向（升級後）
+
+```
+病患 LINE 訊息
+    ↓
+LineWebhook.gs 接收
+    ↓
+查【對話狀態表】取 current_step
+    ↓
+    ├─ 問卷進行中 → Quick Reply 狀態機 → 累加 session_data
+    │    → 問卷完成 → 直接寫入【術後追蹤日誌】（confirmed=TRUE）
+    │
+    └─ idle / chat / 自由文字
+         → Gemini context injection → 個人化回覆
+         → 解析數值 → 寫入【AI 暫存待確認區】
+```
+
+---
+
+## 6. Gemini 自然語言對話（規劃中）
+
+### Context Injection Prompt 結構
+
+```javascript
+function buildChatPrompt(patientCtx, rawMessage) {
+  return `你是友善的術後照護助理，用溫暖口語的繁體中文回覆（2–3句）。
+
+【病患現況】
+術後第 ${patientCtx.daysPostOp} 天 | 手術：${patientCtx.opName}
+上次回報（${patientCtx.lastReportDays}天前）：VAS背=${patientCtx.lastVasBack}，VAS腿=${patientCtx.lastVasLeg}
+
+【病患訊息】"${rawMessage}"
+
+請完成兩件事：
+1. 溫暖回覆（不過度醫療化）
+2. 若有疼痛資訊，推估數值，輸出 JSON；否則 null
+
+格式：
+REPLY: （回覆文字）
+DATA: {"vas_back": 數字或null, "vas_leg": 數字或null, "confidence": "high/low"}`;
+}
+```
+
+### 三種對話情境
+
+| 情境 | 範例 | 處理 |
 |------|------|------|
-| 第一階段（MVP） | Google Forms | 零學習成本，手術後護理師平板填寫，直接入庫 |
-| 第二階段（升級） | AppSheet | 將 Sheets 轉為有按鈕的手機 App 介面 |
-
-**Google Forms 設計重點：**
-- Cage 規格、手術方式 → 全部使用下拉選單（來源：耗材代碼表）
-- 必填欄位設定：`research_id`、`op_date`、`op_name`、`cage_code`
-- 提交後自動寫入【手術記錄表】
-
-### 病患端（Line Bot）
-
-```
-病患在 Line 說話
-    ↓
-GAS Webhook 接收原始訊息
-    ↓
-Gemini API 解析 → VAS 數值 + 狀況摘要
-    ↓
-寫入【AI 暫存待確認區】（record_type: ai_parsed）
-    ↓
-Line 回覆病患：「感謝您的回覆！已記錄，
-              醫療團隊會定期查看您的狀況。」
-    ↓
-醫護在 Sheets 確認暫存區 → 點擊 [核准] / [拒絕]
-    ↓
-核准後自動移入【術後追蹤日誌】（confirmed: TRUE）
-```
-
-### 醫護確認介面
-
-- 使用 Sheets **Filter View** 篩選 `review_status = pending`
-- 每列右側加入「核准 ✅」「拒絕 ❌」按鈕（GAS onEdit 觸發）
-- 目標：醫護每日花 3-5 分鐘完成當日確認
+| 主動回報症狀 | 「腰好多了，腳還有點麻」| 回覆 + 推估 VAS → 暫存確認 |
+| 詢問自身狀況 | 「我的恢復正常嗎？」| 查本人歷史 → 個人化回覆，不寫入 |
+| 非醫療閒聊 | 「謝謝你們的關心」| 簡短回覆，不解析 |
 
 ---
 
-## 5. AI 分析與統計回饋
+## 7. 統計分析設計（規劃中）
 
-### 週報自動分析（每週一 09:00 觸發）
+### MCID 門檻（JBJS 標準）
 
-```
-GAS 讀取【術後追蹤日誌】（僅 confirmed=TRUE）
-    ↓
-依 cage_code 分組，計算各時間點平均 VAS
-    ↓
-偵測樣本數：n < 15 → 加入警示標記
-    ↓
-呼叫 Gemini API 生成文字摘要
-    ↓
-寫入【AI 分析區】並發送摘要 Email 給主責醫師
-```
+| 指標 | MCID 門檻 | 計算基準 |
+|------|----------|---------|
+| VAS | 改善 ≥ 2.5 分 | 術前 vs D84 |
+| ODI | 改善 ≥ 12.8% | 術前 vs D84 |
 
-### 回饋範例
+### 計畫新增 Vue Tab：McidView
 
-```
-哲瑋醫師，本週數據摘要（2026/04/06 - 2026/04/12）
-
-【耗材比較】
-使用 TLIF Cage 10mm（n=18）的病患，術後第 14 天
-平均 VAS 下降 4.2 分；使用 8mm（n=12）組下降 3.1 分。
-差異有統計趨勢，建議持續觀察（樣本量仍需擴大）。
-
-【追蹤完整度】
-本週應填 23 人次，實際填寫 19 人次（完整度 83%）✅
-2 名病患連續 3 次未回覆，已標記待聯絡。
-
-【匯出】點擊下方按鈕可下載本月 CSV（SPSS 相容格式）
-```
+| 區塊 | 內容 |
+|------|------|
+| MCID 達成率儀表板 | VAS / ODI 各自達成率，圓餅或數字卡 |
+| 個人 MCID 明細表 | 每人術前/術後/改善量/結果 |
+| PASS 達成天數表 | K-M 原始資料，可下載 CSV |
+| 樣本數警示 | n < 15 顯示警示橫幅 |
 
 ---
 
-## 6. 資安與合規設計
+## 8. 資安與合規設計
 
 ### 個資保護架構
 
 ```
-公開研究數據（Sheets）         敏感對照資料（Drive）
-─────────────────────         ─────────────────────
-research_id: SP-2026-001  ←→  姓名：王○○
-                               身分證末四碼：XXXX
-                               Line UID：Uxxxxxxx
-                               （僅限特定 Google 帳號存取）
+Google Sheets（研究數據）            Google Drive（敏感對照）
+────────────────────────             ──────────────────────
+research_id: SP-2026-001   ←→       姓名、LINE UID
+（無姓名、無 LINE UID）               （PRIVACY_TABLE_ID，獨立存取控管）
 ```
 
 ### 存取控制
@@ -332,97 +440,34 @@ research_id: SP-2026-001  ←→  姓名：王○○
 | 角色 | 可存取分頁 | 權限 |
 |------|-----------|------|
 | 主責醫師 | 全部 | 讀寫 |
-| 護理師 / RA | 手術記錄、追蹤日誌、暫存確認區 | 讀寫 |
-| 研究助理 | AI 分析區、追蹤日誌（唯讀） | 唯讀 |
-| GAS 服務帳號 | 全部（程式執行用） | 讀寫 |
-
-### 其他合規措施
-
-- Sheets 啟用「版本紀錄」（Google 原生功能），任何修改均可回溯
-- Line UID 不存入 Sheets，只存於 Drive 對照表
-- GAS 執行 log 保留 90 天
+| 護理師 / RA | 手術記錄、追蹤日誌、AI 暫存 | 讀寫 |
+| 研究助理 | AI 分析區、追蹤日誌 | 唯讀 |
+| GAS 服務帳號 | 全部（程式執行）| 讀寫 |
 
 ---
 
-## 7. 數據品質保障機制
-
-| 風險 | 機制 |
-|------|------|
-| AI 語意誤判 | 暫存待確認區 + 醫護每日 review |
-| 積分/打卡濫用 | 每日限回覆一次（GAS 防重複） |
-| GAS 逾時失敗 | 分批處理 + 失敗時 Email 通知管理者 |
-| 統計誤導 | n < 15 自動顯示樣本不足警示 |
-| 數據被覆蓋 | Append-only 日誌，`record_type` 標記溯源 |
-| 重複推播 | `last_sent_date` + `推播排程Log` 雙重防呆 |
-| 假日推播 | 可設定節假日清單，GAS 自動跳過 |
-
----
-
-## 8. 實施步驟
-
-| 步驟 | 內容 | 工具 | 預估時間 |
-|------|------|------|----------|
-| 1 | 確認耗材清單，建立耗材代碼表 | Sheets | 0.5 天 |
-| 2 | 建立六個分頁結構與欄位 | Sheets | 0.5 天 |
-| 3 | 建立 Google Forms（含下拉選單） | Forms | 0.5 天 |
-| 4 | GAS：推播排程器（含防呆 log） | GAS | 2 天 |
-| 5 | Line Bot Webhook + Gemini 串接 | GAS + Gemini API | 2 天 |
-| 6 | 暫存區確認按鈕介面 | GAS | 1 天 |
-| 7 | AI 分析區 + 匯出 CSV 按鈕 | GAS + Gemini API | 1 天 |
-| 8 | 測試與上線 | — | 1 天 |
-
-**預估總工時：約 8-9 個工作天可完成 MVP**
-
----
-
-## 9. 技術架構總覽
+## 9. 升級路徑
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   Google Sheets（核心資料庫）             │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐  │
-│  │耗材代碼表 │ │手術記錄表│ │術後追蹤  │ │AI暫存     │  │
-│  │（下拉源） │ │（基準線）│ │日誌      │ │待確認區   │  │
-│  └──────────┘ └──────────┘ │Append    │ └───────────┘  │
-│  ┌──────────┐ ┌──────────┐ │only      │                 │
-│  │推播排程  │ │AI 分析區 │ └──────────┘                 │
-│  │Log       │ │(+CSV匯出)│                              │
-│  └──────────┘ └──────────┘                              │
-└─────────────────────────────────────────────────────────┘
-         ↑ 讀寫              ↑ 分析觸發
-┌────────────────┐    ┌──────────────────┐
-│ Google Forms   │    │ GAS 自動化引擎    │
-│ （醫護端輸入） │    │ ├ 每日推播排程器 │
-└────────────────┘    │ ├ Line Webhook   │
-                      │ ├ 週報分析觸發器 │
-┌────────────────┐    │ └ 失敗 Email通知 │
-│ Line Bot       │    └──────────────────┘
-│ （病患端回覆） │           ↓
-└────────────────┘    ┌──────────────────┐
-         ↕            │  Gemini API      │
-         └──────────→ │  語意解析 + 回饋 │
-                      └──────────────────┘
-
-個資保護層（Google Drive，獨立權限控管）
-└── research_id ↔ 姓名 / Line UID 對照表
+現在（V2.1 實作中）                  →  未來（V4 完整版）
+────────────────────────────────       ──────────────────────────
+Vue 3 + Cloudflare Pages           →  同（持續優化）
+GAS Web App（REST API）            →  Cloudflare Workers（更快，無 cold start 問題）
+Google Sheets（Append-only 長表）   →  Firebase Firestore（即時同步）
+LINE Bot 自由文字 ✅ 已上線          →  14 步 Quick Reply 問卷（規劃中）
+Gemini 解析（已實作）               →  Gemini context injection 對話（規劃中）
+手動 CSV 匯出（已實作）             →  MCID Vue Tab + 自動週報（規劃中）
 ```
 
----
+### 近期待實作優先順序
 
-## 升級路徑
-
-```
-現在（Lite 版）          →  未來（V4 完整版）
-─────────────────────       ──────────────────────
-Google Sheets            →  Firebase Firestore
-Google Forms             →  Vue PWA 介面
-GAS 排程器               →  Spring Boot 後端
-AppSheet（第二階段）     →  原生 App
-Line Bot 文字回覆        →  積分遊戲化 + 恢復進度視覺化
-手動 CSV 匯出            →  自動週報儀表板
-```
-
-> Lite 版與 V4 版的欄位命名保持一致，確保未來數據可直接遷移，無需重新清洗。
+| 優先 | 功能 | 對應位置 |
+|------|------|---------|
+| ★★★ | `odi_description` → `odi_score`（數值欄位）| `Config.gs`、`FormHandler.gs`、FormView Tab B |
+| ★★★ | LINE Bot 14 步 Quick Reply 問卷 + 對話狀態表 | `LineWebhook.gs`、新分頁 |
+| ★★ | Vue McidView（MCID 統計 Tab）| `vue-app/src/views/`、`WebApp.gs` |
+| ★★ | Gemini context injection 對話模式 | `GeminiAPI.gs`、`LineWebhook.gs` |
+| ★ | 統計分析分頁（Sheets 公式）| Google Sheets |
 
 ---
 
