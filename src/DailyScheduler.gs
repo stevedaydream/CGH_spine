@@ -51,9 +51,11 @@ function dailyPushScheduler() {
     var lastRecord = getLastRecord(researchId);
     var message = _buildPushMessage(researchId, daysPostOp, lastRecord);
 
-    // 發送 Line 推播
+    // 發送 Line 推播（附 Quick Reply 開始填寫按鈕）
     try {
-      var success = sendLineMessage(researchId, message);
+      var success = sendLineMessageWithQuickReply(researchId, message, [
+        { label: '開始填寫問卷', text: '開始填寫' }
+      ]);
       _appendPushLog(logSheet, researchId, daysPostOp, today,
         success ? 'sent' : 'failed', '', success ? '' : 'Line API 回傳失敗');
       if (!success) errors.push(researchId);

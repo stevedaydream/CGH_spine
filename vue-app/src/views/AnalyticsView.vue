@@ -138,6 +138,7 @@ onUnmounted(() => {
         <span class="text-white-50 small align-self-center">AI 分析儀表板</span>
         <RouterLink to="/"     class="btn btn-outline-light btn-sm"><i class="bi bi-house me-1"></i>後台</RouterLink>
         <RouterLink to="/form" class="btn btn-outline-light btn-sm"><i class="bi bi-pencil-square me-1"></i>填表</RouterLink>
+        <RouterLink to="/mcid" class="btn btn-outline-light btn-sm"><i class="bi bi-graph-up-arrow me-1"></i>MCID</RouterLink>
         <button class="btn btn-outline-light btn-sm" @click="load">
           <i class="bi bi-arrow-clockwise me-1"></i>重新整理
         </button>

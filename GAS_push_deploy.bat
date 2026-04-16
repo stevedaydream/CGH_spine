@@ -90,7 +90,7 @@ echo.
 
 echo [1/2] Building vue-app...
 cd /d "%~dp0vue-app"
-npm run build
+call npm run build
 if %errorlevel% neq 0 (
     echo.
     echo [FAILED] Build failed.
@@ -102,7 +102,7 @@ if %errorlevel% neq 0 (
 echo.
 echo [2/2] Deploying to Cloudflare Pages...
 cd /d "%~dp0"
-wrangler pages deploy vue-app/dist --project-name spine-cgh --branch main
+call npx wrangler pages deploy vue-app/dist --project-name spine-cgh --branch main
 if %errorlevel% neq 0 (
     echo.
     echo [FAILED] Deploy failed.

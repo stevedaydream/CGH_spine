@@ -72,6 +72,67 @@ function handleApiRequest_(e) {
         result = addFollowUpRecord_(params);
         break;
 
+      case 'getMcidData':
+        result = getMcidData_();
+        break;
+
+      case 'generateBindCode': {
+        var rid = params.researchId;
+        if (!rid) throw new Error('researchId 必填');
+        var bCode = generateBindingCode_(rid);
+        result = { success: true, bindingCode: bCode, researchId: rid };
+        break;
+      }
+
+      case 'getPatientDetail': {
+        var detailId = params.researchId;
+        if (!detailId) throw new Error('researchId 必填');
+        result = getPatientDetail_(detailId);
+        break;
+      }
+
+      case 'getExportData':
+        result = getExportData_(params);
+        break;
+
+      case 'getHealthEdu':
+        result = getHealthEdu_();
+        break;
+
+      case 'saveHealthEdu':
+        result = saveHealthEdu_(params);
+        break;
+
+      case 'deleteHealthEdu': {
+        var delId = params.id;
+        if (!delId) throw new Error('id 必填');
+        result = deleteHealthEdu_(delId);
+        break;
+      }
+
+      case 'updateChartNumber': {
+        var ucId  = params.researchId;
+        var ucNum = params.chartNumber !== undefined ? params.chartNumber : '';
+        if (!ucId) throw new Error('researchId 必填');
+        result = updateChartNumber_(ucId, ucNum);
+        break;
+      }
+
+      case 'getLineReply':
+        result = getLineReply_();
+        break;
+
+      case 'saveLineReply':
+        result = saveLineReply_(params);
+        break;
+
+      case 'deleteLineReply': {
+        var dlrId = params.id;
+        if (!dlrId) throw new Error('id 必填');
+        result = deleteLineReply_(dlrId);
+        break;
+      }
+
       default:
         result = { error: '未知的 action：' + action };
     }

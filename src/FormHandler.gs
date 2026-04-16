@@ -36,7 +36,20 @@ function addOperationRecord_(p) {
     p.interventionGroup || 'control'
   ]);
 
-  return { success: true };
+  // 同步寫入個資對照表（帶病歷號）
+  _upsertPrivacyChartNumber_(p.researchId, p.chartNumber || '');
+
+  // 同步產生 LINE 綁定碼（僅 line_bot / partial 組需要）
+  var bindingCode = '';
+  if (p.interventionGroup !== 'control') {
+    try {
+      bindingCode = generateBindingCode_(p.researchId);
+    } catch (e) {
+      Logger.log('[addOperationRecord_] 產生綁定碼失敗：' + e.message);
+    }
+  }
+
+  return { success: true, bindingCode: bindingCode };
 }
 
 /**
@@ -60,14 +73,17 @@ function addFollowUpRecord_(p) {
     daysPostOp,
     toNum_(p.vasBack),
     toNum_(p.vasLeg),
-    p.odiDescription || '',
+    '',                          // odi_description（門診留空）
     p.woundStatus    || '',
-    '',         // raw_message（門診直接填，無原始訊息）
-    'direct',   // record_type
-    true        // confirmed（門診即時確認）
+    '',                          // raw_message
+    'direct',                    // record_type
+    true,                        // confirmed
+    toNum_(p.odiScore),          // odi_score 0-100（新）
+    p.pass           || '',      // pass Y/N（新）
+    toNum_(p.anchorQ)            // anchor_q 1-7（新）
   ]);
 
-  return { success: true, daysPostOp: daysPostOp, logId: logId };
+  return { success: true, daysPostOp: daysPostOp, logId: logId, odiScore: toNum_(p.odiScore) };
 }
 
 /**
@@ -108,6 +124,29 @@ function getFormOptions_() {
   var surgeons    = Array.from(new Set(fromProp.concat(fromSheet)));
 
   return { patientIds: patientIds, cageCodes: cageCodes, nextId: nextId, surgeons: surgeons };
+}
+
+/**
+ * 在個資對照表為指定 research_id 寫入或更新病歷號
+ * 若該列不存在則建立（line_uid 留空等待綁定）
+ */
+function _upsertPrivacyChartNumber_(researchId, chartNumber) {
+  var privacySheetId = getConfig_('PRIVACY_TABLE_ID');
+  if (!privacySheetId) return;
+  try {
+    var sheet = SpreadsheetApp.openById(privacySheetId).getSheets()[0];
+    var data  = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][PRIVACY_COL.RESEARCH_ID]) === String(researchId)) {
+        sheet.getRange(i + 1, PRIVACY_COL.CHART_NUMBER + 1).setValue(chartNumber);
+        return;
+      }
+    }
+    // 新病患尚未綁定，先建立一列
+    sheet.appendRow([researchId, '', chartNumber]);
+  } catch (e) {
+    Logger.log('[_upsertPrivacyChartNumber_] ' + e.message);
+  }
 }
 
 /** 轉數字，空值回傳空字串 */

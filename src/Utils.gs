@@ -177,6 +177,87 @@ function _getLineUid(researchId) {
 }
 
 /**
+ * 回覆訊息並附帶 Quick Reply 按鈕
+ * @param {string} replyToken
+ * @param {string} text        顯示的訊息文字
+ * @param {Array}  items       [{label, text}, ...]，label 最多 20 字元
+ */
+function replyWithQuickReply(replyToken, text, items) {
+  var token = getConfig_('LINE_CHANNEL_ACCESS_TOKEN');
+  var qrItems = items.map(function(item) {
+    return {
+      type: 'action',
+      action: { type: 'message', label: String(item.label).substring(0, 20), text: String(item.text) }
+    };
+  });
+  var payload = JSON.stringify({
+    replyToken: replyToken,
+    messages: [{ type: 'text', text: text, quickReply: { items: qrItems } }]
+  });
+  var options = {
+    method: 'post', contentType: 'application/json',
+    headers: { 'Authorization': 'Bearer ' + token },
+    payload: payload, muteHttpExceptions: true
+  };
+  UrlFetchApp.fetch('https://api.line.me/v2/bot/message/reply', options);
+}
+
+/**
+ * 回覆 Flex Message（Bubble）
+ * @param {string} replyToken
+ * @param {string} altText      通知文字（無法顯示 Flex 時的替代文字）
+ * @param {Object} bubbleContents  Flex Bubble JSON 物件
+ */
+function replyWithFlex(replyToken, altText, bubbleContents) {
+  var token = getConfig_('LINE_CHANNEL_ACCESS_TOKEN');
+  var payload = JSON.stringify({
+    replyToken: replyToken,
+    messages: [{ type: 'flex', altText: altText, contents: bubbleContents }]
+  });
+  var options = {
+    method: 'post', contentType: 'application/json',
+    headers: { 'Authorization': 'Bearer ' + token },
+    payload: payload, muteHttpExceptions: true
+  };
+  UrlFetchApp.fetch('https://api.line.me/v2/bot/message/reply', options);
+}
+
+/**
+ * 主動推播訊息並附帶 Quick Reply 按鈕
+ * @param {string} researchId
+ * @param {string} text
+ * @param {Array}  items  [{label, text}, ...]
+ * @returns {boolean}
+ */
+function sendLineMessageWithQuickReply(researchId, text, items) {
+  try {
+    var uid = _getLineUid(researchId);
+    if (!uid) return false;
+    var token = getConfig_('LINE_CHANNEL_ACCESS_TOKEN');
+    var qrItems = items.map(function(item) {
+      return {
+        type: 'action',
+        action: { type: 'message', label: String(item.label).substring(0, 20), text: String(item.text) }
+      };
+    });
+    var payload = JSON.stringify({
+      to: uid,
+      messages: [{ type: 'text', text: text, quickReply: { items: qrItems } }]
+    });
+    var options = {
+      method: 'post', contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + token },
+      payload: payload, muteHttpExceptions: true
+    };
+    var res = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', options);
+    return res.getResponseCode() === 200;
+  } catch (e) {
+    Logger.log('[sendLineMessageWithQuickReply] ' + e.message);
+    return false;
+  }
+}
+
+/**
  * 格式化日期為 YYYY/MM/DD
  */
 function formatDate_(date) {

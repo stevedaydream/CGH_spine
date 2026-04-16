@@ -27,7 +27,7 @@ onMounted(async () => {
 
 // ── Tab A：手術記錄 ────────────────────────────────────
 const formA = reactive({
-  researchId: '', opDate: today(), surgeon: '',
+  researchId: '', chartNumber: '', opDate: today(), surgeon: '',
   opName: '', opLevels: '', cageCode: '', screwCode: '',
   boneGraft: '', otherImplant: '', complication: '',
   preVasBack: null, preVasLeg: null,
@@ -35,10 +35,11 @@ const formA = reactive({
   opDuration: '', ebl: '',
   interventionGroup: 'line_bot'
 })
-const showAdvA = ref(false)
-const errA     = reactive({})
-const loadingA = ref(false)
-const doneA    = ref(false)
+const showAdvA    = ref(false)
+const errA        = reactive({})
+const loadingA    = ref(false)
+const doneA       = ref(false)
+const bindingCode = ref('')
 
 function validateA() {
   Object.keys(errA).forEach(k => delete errA[k])
@@ -52,7 +53,8 @@ async function submitA() {
   if (!validateA()) return
   loadingA.value = true
   try {
-    await addOperationRecord({ ...formA })
+    const res = await addOperationRecord({ ...formA })
+    bindingCode.value = res.bindingCode || ''
     doneA.value = true
     // 自動帶入 Tab B 的研究編號
     formB.researchId = formA.researchId
@@ -65,7 +67,7 @@ async function submitA() {
 
 function resetA() {
   Object.assign(formA, {
-    researchId: opts.nextId, opDate: today(), surgeon: '',
+    researchId: opts.nextId, chartNumber: '', opDate: today(), surgeon: '',
     opName: '', opLevels: '', cageCode: '', screwCode: '',
     boneGraft: '', otherImplant: '', complication: '',
     preVasBack: null, preVasLeg: null,
@@ -74,16 +76,17 @@ function resetA() {
   })
   Object.keys(errA).forEach(k => delete errA[k])
   doneA.value = false
+  bindingCode.value = ''
 }
 
 // ── Tab B：術後追蹤 ────────────────────────────────────
 const formB = reactive({
   researchId: '', vasBack: null, vasLeg: null,
-  odiDescription: '', woundStatus: ''
+  odiScore: '', pass: '', anchorQ: '', woundStatus: ''
 })
 const errB     = reactive({})
 const loadingB = ref(false)
-const doneB    = ref({ show: false, daysPostOp: null })
+const doneB    = ref({ show: false, daysPostOp: null, odiScore: null })
 
 function validateB() {
   Object.keys(errB).forEach(k => delete errB[k])
@@ -97,7 +100,7 @@ async function submitB() {
   loadingB.value = true
   try {
     const res = await addFollowUpRecord({ ...formB })
-    doneB.value = { show: true, daysPostOp: res.daysPostOp }
+    doneB.value = { show: true, daysPostOp: res.daysPostOp, odiScore: res.odiScore }
   } catch (e) {
     showToast(e.message, 'danger')
   } finally {
@@ -106,9 +109,10 @@ async function submitB() {
 }
 
 function resetB() {
-  Object.assign(formB, { researchId: '', vasBack: null, vasLeg: null, odiDescription: '', woundStatus: '' })
+  Object.assign(formB, { researchId: '', vasBack: null, vasLeg: null,
+    odiScore: '', pass: '', anchorQ: '', woundStatus: '' })
   Object.keys(errB).forEach(k => delete errB[k])
-  doneB.value = { show: false, daysPostOp: null }
+  doneB.value = { show: false, daysPostOp: null, odiScore: null }
 }
 
 // ── Toast ──────────────────────────────────────────────
@@ -119,6 +123,11 @@ function showToast(msg, type = 'danger') {
   toast.value = { show: true, msg, type }
   toastTimer = setTimeout(() => { toast.value.show = false }, 4000)
 }
+
+// ── LINE Bot QR ───────────────────────────────────────
+const LINE_BOT_ID  = import.meta.env.VITE_LINE_BOT_ID || ''
+const lineQrUrl    = LINE_BOT_ID ? `https://qr-official.line.me/sid/L/${LINE_BOT_ID}.png` : ''
+const lineAddUrl   = LINE_BOT_ID ? `https://line.me/R/ti/p/@${LINE_BOT_ID}` : ''
 
 // ── 工具 ──────────────────────────────────────────────
 function today() {
@@ -138,6 +147,7 @@ function today() {
         <span class="text-white-50 small align-self-center">門診快速填表</span>
         <RouterLink to="/"          class="btn btn-outline-light btn-sm"><i class="bi bi-house me-1"></i>後台</RouterLink>
         <RouterLink to="/analytics" class="btn btn-outline-light btn-sm"><i class="bi bi-bar-chart-line me-1"></i>分析</RouterLink>
+        <RouterLink to="/mcid"      class="btn btn-outline-light btn-sm"><i class="bi bi-graph-up-arrow me-1"></i>MCID</RouterLink>
       </div>
     </nav>
 
@@ -167,11 +177,59 @@ function today() {
             <div class="card-body p-4">
 
               <!-- 送出成功畫面 -->
-              <div v-if="doneA" class="text-center py-4">
-                <i class="bi bi-check-circle-fill text-success" style="font-size:3rem"></i>
-                <div class="fs-5 fw-bold mt-3">手術記錄已儲存</div>
-                <div class="text-muted mt-1">{{ formA.researchId }}</div>
-                <div class="d-flex justify-content-center gap-3 mt-4">
+              <div v-if="doneA" class="py-3">
+                <div class="text-center mb-3">
+                  <i class="bi bi-check-circle-fill text-success" style="font-size:3rem"></i>
+                  <div class="fs-5 fw-bold mt-3">手術記錄已儲存</div>
+                  <div class="text-muted mt-1">{{ formA.researchId }}</div>
+                </div>
+
+                <!-- LINE 綁定碼（僅 line_bot / partial 組顯示）-->
+                <div v-if="bindingCode" class="card border-0 mb-4"
+                     style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #86efac!important">
+                  <div class="card-body py-4">
+
+                    <div class="d-flex align-items-center justify-content-center gap-2 mb-3">
+                      <i class="bi bi-qr-code-scan text-success fs-4"></i>
+                      <span class="fw-bold text-success fs-6">交給病患 — LINE 綁定說明</span>
+                    </div>
+
+                    <div class="row g-3 align-items-center">
+
+                      <!-- 左：QR code -->
+                      <div class="col-auto text-center">
+                        <a v-if="lineQrUrl" :href="lineAddUrl" target="_blank">
+                          <img :src="lineQrUrl" alt="LINE Bot QR Code"
+                               style="width:110px;height:110px;border-radius:8px;border:2px solid #86efac">
+                        </a>
+                        <div class="text-muted" style="font-size:10px;margin-top:4px">掃我加好友</div>
+                      </div>
+
+                      <!-- 右：綁定碼 + 說明 -->
+                      <div class="col">
+                        <div class="text-muted small mb-1">步驟 ①  掃描左側 QR Code 加 LINE 好友</div>
+                        <div class="text-muted small mb-2">步驟 ②  在對話框輸入以下綁定碼：</div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                          <div class="fw-bold text-success"
+                               style="font-size:2.2rem;letter-spacing:.3em;font-variant-numeric:tabular-nums">
+                            {{ bindingCode }}
+                          </div>
+                          <button class="btn btn-outline-success btn-sm"
+                                  @click="() => navigator.clipboard.writeText(bindingCode)"
+                                  title="複製">
+                            <i class="bi bi-clipboard"></i>
+                          </button>
+                        </div>
+                        <div class="text-muted" style="font-size:11px">
+                          <i class="bi bi-clock me-1"></i>有效期限 48 小時 · 限使用一次
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-center gap-3">
                   <button class="btn btn-outline-secondary" @click="resetA">
                     <i class="bi bi-plus-circle me-1"></i>再新增一筆
                   </button>
@@ -193,6 +251,12 @@ function today() {
                            :class="{ 'is-invalid': errA.researchId }"
                            placeholder="SP-2026-001">
                     <div class="invalid-feedback">{{ errA.researchId }}</div>
+                  </div>
+                  <div class="col-sm-6">
+                    <label class="form-label">病歷號</label>
+                    <input v-model="formA.chartNumber" type="text" class="form-control"
+                           placeholder="院內病歷號（選填）">
+                    <div class="form-text">僅存於個資對照表，不進入研究資料</div>
                   </div>
                   <div class="col-sm-6">
                     <label class="form-label">手術日期 <span class="text-danger">*</span></label>
@@ -331,6 +395,10 @@ function today() {
                 <div class="text-muted mt-1">
                   {{ formB.researchId }} — 術後第 {{ doneB.daysPostOp }} 天
                 </div>
+                <div v-if="doneB.odiScore !== '' && doneB.odiScore !== null"
+                     class="mt-2 badge bg-info fs-6">
+                  ODI {{ doneB.odiScore }}%
+                </div>
                 <button class="btn btn-outline-secondary mt-4" @click="resetB">
                   <i class="bi bi-plus-circle me-1"></i>再新增一筆
                 </button>
@@ -366,13 +434,37 @@ function today() {
                   <VasInput v-model="formB.vasLeg" />
                 </div>
 
-                <!-- 選填 -->
-                <div class="section-label">選填</div>
+                <!-- ODI 評分 -->
+                <div class="section-label">ODI 功能障礙指數</div>
                 <div class="row g-3 mb-4">
-                  <div class="col-12">
-                    <label class="form-label">功能狀態描述（ODI 相關）</label>
-                    <input v-model="formB.odiDescription" type="text" class="form-control"
-                           placeholder="例：可自行行走 100m，上下樓梯需扶手">
+                  <div class="col-sm-4">
+                    <label class="form-label">ODI 分數 (0–100%)</label>
+                    <input v-model="formB.odiScore" type="number" min="0" max="100"
+                           class="form-control" placeholder="如：36">
+                    <div class="form-text">0=無障礙，100=完全障礙</div>
+                  </div>
+                  <div class="col-sm-4">
+                    <label class="form-label">PASS（症狀可接受）</label>
+                    <div class="btn-group w-100" role="group">
+                      <input type="radio" class="btn-check" id="passY" v-model="formB.pass" value="Y">
+                      <label class="btn btn-outline-success" for="passY">Y — 可接受</label>
+                      <input type="radio" class="btn-check" id="passN" v-model="formB.pass" value="N">
+                      <label class="btn btn-outline-danger"  for="passN">N — 不可接受</label>
+                    </div>
+                  </div>
+                  <div class="col-sm-4">
+                    <label class="form-label">整體改善感受 (1–7)</label>
+                    <select v-model="formB.anchorQ" class="form-select">
+                      <option value="">請選擇</option>
+                      <option value="1">1 — 差很多</option>
+                      <option value="2">2 — 差一些</option>
+                      <option value="3">3 — 稍微差</option>
+                      <option value="4">4 — 沒變化</option>
+                      <option value="5">5 — 稍微好</option>
+                      <option value="6">6 — 好一些</option>
+                      <option value="7">7 — 好很多</option>
+                    </select>
+                    <div class="form-text">PGIC 整體改變印象</div>
                   </div>
                   <div class="col-12">
                     <label class="form-label">傷口狀況</label>
