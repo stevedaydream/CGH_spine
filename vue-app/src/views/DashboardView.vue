@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getDashboardData, approveRecord, rejectRecord, getPatientDetail, updateChartNumber } from '../api/gas.js'
+import { getDashboardData, approveRecord, rejectRecord, getPatientDetail, updateChartNumber, deleteOperationRecord } from '../api/gas.js'
 
 // 自動 focus 指令（行內編輯輸入框用）
 const vFocus = { mounted: (el) => el.focus() }
@@ -180,6 +180,18 @@ async function saveChart() {
   }
 }
 
+// ── 刪除追蹤個案 ──────────────────────────────────────
+async function deletePatient(p) {
+  if (!confirm(`確定刪除「${p.researchId}」？\n此操作將移除手術記錄及個資對照，無法復原。`)) return
+  try {
+    await deleteOperationRecord(p.researchId)
+    patients.value = patients.value.filter(x => x.researchId !== p.researchId)
+    showToast('已刪除 ' + p.researchId, 'warning')
+  } catch (e) {
+    showToast('刪除失敗：' + e.message, 'danger')
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -193,11 +205,21 @@ onMounted(load)
       </span>
       <div class="d-flex gap-2">
         <span class="text-white-50 small align-self-center">醫護後台</span>
-        <RouterLink to="/form"      class="btn btn-outline-light btn-sm"><i class="bi bi-pencil-square me-1"></i>填表</RouterLink>
+        <RouterLink to="/form"      class="btn btn-outline-light btn-sm"><i class="bi bi-person-plus me-1"></i>手術登錄</RouterLink>
         <RouterLink to="/analytics" class="btn btn-outline-light btn-sm"><i class="bi bi-bar-chart-line me-1"></i>分析</RouterLink>
         <RouterLink to="/mcid"      class="btn btn-outline-light btn-sm"><i class="bi bi-graph-up-arrow me-1"></i>MCID</RouterLink>
         <RouterLink to="/export"     class="btn btn-outline-light btn-sm"><i class="bi bi-download me-1"></i>匯出</RouterLink>
-        <RouterLink to="/bot-management" class="btn btn-outline-light btn-sm"><i class="bi bi-robot me-1"></i>Bot管理</RouterLink>
+        <div class="sys-menu">
+          <RouterLink to="/bot-management" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-gear me-1"></i>系統設定
+          </RouterLink>
+          <div class="sys-menu-dropdown">
+            <div><i class="bi bi-robot me-1"></i>LINE Bot 回覆設定</div>
+            <div><i class="bi bi-journal-medical me-1"></i>衛教 QA 管理</div>
+            <div><i class="bi bi-box-seam me-1"></i>耗材管理</div>
+          </div>
+        </div>
+        <RouterLink to="/clinic"         class="btn btn-outline-light btn-sm"><i class="bi bi-clipboard2-pulse me-1"></i>回診登記</RouterLink>
         <button v-if="lineQrUrl" class="btn btn-success btn-sm"
                 @click="showQr = !showQr">
           <i class="bi bi-qr-code me-1"></i>LINE QR
@@ -421,10 +443,16 @@ onMounted(load)
                     <div class="text-muted" style="font-size:.72rem">{{ p.actual }}/{{ p.expected }} 次</div>
                   </td>
                   <td>
-                    <button class="btn btn-outline-primary btn-sm" style="font-size:.78rem;white-space:nowrap"
-                            @click="openDetail(p.researchId)">
-                      <i class="bi bi-journal-text me-1"></i>詳情
-                    </button>
+                    <div class="d-flex gap-1">
+                      <button class="btn btn-outline-primary btn-sm" style="font-size:.78rem;white-space:nowrap"
+                              @click="openDetail(p.researchId)">
+                        <i class="bi bi-journal-text me-1"></i>詳情
+                      </button>
+                      <button class="btn btn-outline-danger btn-sm" style="font-size:.78rem"
+                              @click="deletePatient(p)" title="刪除個案">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -628,6 +656,17 @@ onMounted(load)
 </template>
 
 <style scoped>
+.sys-menu { position: relative; }
+.sys-menu-dropdown {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0;
+  background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.15);
+  padding: 6px 0; min-width: 170px; z-index: 1000;
+}
+.sys-menu:hover .sys-menu-dropdown { display: block; }
+.sys-menu-dropdown div {
+  padding: 6px 14px; font-size: .82rem; color: #333; white-space: nowrap;
+}
+.sys-menu-dropdown div + div { border-top: 1px solid #f0f4f8; }
 .vas-pill {
   display: inline-block; width: 28px; height: 28px; border-radius: 50%;
   line-height: 28px; text-align: center; font-size: .8rem; font-weight: 600; color: #fff;

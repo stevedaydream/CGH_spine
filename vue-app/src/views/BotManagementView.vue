@@ -2,7 +2,8 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import {
   getLineReply, saveLineReply, deleteLineReply,
-  getHealthEdu, saveHealthEdu, deleteHealthEdu
+  getHealthEdu, saveHealthEdu, deleteHealthEdu,
+  getImplants, saveImplant, deleteImplant
 } from '../api/gas.js'
 
 // ── Toast ──────────────────────────────────────────────────
@@ -17,7 +18,7 @@ function showToast(msg, type = 'success') {
 // ─────────────────────────────────────────────────────────
 // Tab 狀態
 // ─────────────────────────────────────────────────────────
-const mainTab    = ref('bot')   // 'bot' | 'edu'
+const mainTab    = ref('bot')   // 'bot' | 'edu' | 'implant'
 const botSubTab  = ref('sys')   // 'sys' | 'kw'
 
 // ─────────────────────────────────────────────────────────
@@ -244,7 +245,70 @@ function daysLabel(qa) {
 }
 
 // ─────────────────────────────────────────────────────────
-onMounted(() => { loadReply(); loadEdu() })
+// Tab 3：耗材管理
+// ─────────────────────────────────────────────────────────
+const IMPLANT_CATS   = ['Cage', 'Screw', 'Bone Graft', 'Cement']
+const implants       = ref([])
+const implantLoading = ref(false)
+const showImplantModal = ref(false)
+const isImplantEdit    = ref(false)
+const implantSaving    = ref(false)
+const implantForm = reactive({ code: '', name: '', category: 'Cage', brand: '', note: '' })
+
+async function loadImplants() {
+  implantLoading.value = true
+  try {
+    const data = await getImplants()
+    implants.value = data.items || []
+  } catch (e) {
+    showToast('載入耗材失敗：' + e.message, 'danger')
+  } finally {
+    implantLoading.value = false
+  }
+}
+
+function openImplantAdd() {
+  isImplantEdit.value = false
+  Object.assign(implantForm, { code: '', name: '', category: 'Cage', brand: '', note: '' })
+  showImplantModal.value = true
+}
+
+function openImplantEdit(item) {
+  isImplantEdit.value = true
+  Object.assign(implantForm, { ...item })
+  showImplantModal.value = true
+}
+
+async function submitImplant() {
+  if (!implantForm.code.trim() || !implantForm.category) {
+    showToast('耗材代碼與類別為必填', 'danger'); return
+  }
+  implantSaving.value = true
+  try {
+    await saveImplant({ ...implantForm })
+    showImplantModal.value = false
+    await loadImplants()
+    showToast(isImplantEdit.value ? '已更新 ✅' : '已新增 ✅')
+  } catch (e) {
+    showToast('儲存失敗：' + e.message, 'danger')
+  } finally {
+    implantSaving.value = false
+  }
+}
+
+async function removeImplant(item) {
+  if (!confirm(`確定刪除耗材「${item.code}」？`)) return
+  try {
+    await deleteImplant(item.code)
+    await loadImplants()
+    showToast('已刪除')
+  } catch (e) {
+    showToast('刪除失敗：' + e.message, 'danger')
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+onMounted(() => { loadReply(); loadEdu(); loadImplants() })
 </script>
 
 <template>
@@ -252,10 +316,10 @@ onMounted(() => { loadReply(); loadEdu() })
 
     <!-- Navbar -->
     <nav class="navbar navbar-dark px-3 py-2" style="background:linear-gradient(135deg,#1a73e8,#0d47a1)">
-      <span class="navbar-brand fw-bold"><i class="bi bi-robot me-2"></i>Bot 管理</span>
+      <span class="navbar-brand fw-bold"><i class="bi bi-gear me-2"></i>系統設定</span>
       <div class="d-flex gap-2">
         <RouterLink to="/"       class="btn btn-outline-light btn-sm"><i class="bi bi-house me-1"></i>後台</RouterLink>
-        <RouterLink to="/form"   class="btn btn-outline-light btn-sm"><i class="bi bi-pencil-square me-1"></i>填表</RouterLink>
+        <RouterLink to="/form"   class="btn btn-outline-light btn-sm"><i class="bi bi-person-plus me-1"></i>手術登錄</RouterLink>
         <RouterLink to="/export" class="btn btn-outline-light btn-sm"><i class="bi bi-download me-1"></i>匯出</RouterLink>
       </div>
     </nav>
@@ -274,6 +338,12 @@ onMounted(() => { loadReply(); loadEdu() })
           <button class="nav-link" :class="mainTab === 'edu' ? 'active fw-bold' : ''"
                   @click="mainTab = 'edu'">
             <i class="bi bi-journal-medical me-1"></i>衛教 QA 管理
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" :class="mainTab === 'implant' ? 'active fw-bold' : ''"
+                  @click="mainTab = 'implant'">
+            <i class="bi bi-box-seam me-1"></i>耗材管理
           </button>
         </li>
       </ul>
@@ -554,6 +624,110 @@ onMounted(() => { loadReply(); loadEdu() })
           </div>
         </div>
       </div><!-- /Tab 2 -->
+
+      <!-- ════════════════════════════════════════
+           Tab 3：耗材管理
+      ════════════════════════════════════════ -->
+      <div v-show="mainTab === 'implant'">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="text-muted small">共 {{ implants.length }} 筆耗材</div>
+          <button class="btn btn-primary btn-sm" @click="openImplantAdd">
+            <i class="bi bi-plus-lg me-1"></i>新增耗材
+          </button>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>代碼</th>
+                  <th>名稱</th>
+                  <th>類別</th>
+                  <th>廠牌</th>
+                  <th>備註</th>
+                  <th style="width:100px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="implantLoading">
+                  <td colspan="6" class="text-center py-3">
+                    <span class="spinner-border spinner-border-sm me-1"></span>載入中…
+                  </td>
+                </tr>
+                <tr v-else-if="!implants.length">
+                  <td colspan="6" class="text-center text-muted py-3">尚無耗材資料</td>
+                </tr>
+                <tr v-for="item in implants" :key="item.code">
+                  <td><strong>{{ item.code }}</strong></td>
+                  <td>{{ item.name || '—' }}</td>
+                  <td><span class="badge bg-secondary">{{ item.category }}</span></td>
+                  <td>{{ item.brand || '—' }}</td>
+                  <td class="text-muted small">{{ item.note || '—' }}</td>
+                  <td>
+                    <div class="d-flex gap-1">
+                      <button class="btn btn-outline-secondary btn-sm" @click="openImplantEdit(item)">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button class="btn btn-outline-danger btn-sm" @click="removeImplant(item)">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 新增/編輯 Modal -->
+        <div v-if="showImplantModal"
+             class="modal d-flex align-items-center justify-content-center"
+             style="position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.45)">
+          <div class="modal-dialog modal-dialog-centered m-0" style="width:420px">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">{{ isImplantEdit ? '編輯耗材' : '新增耗材' }}</h5>
+                <button class="btn-close" @click="showImplantModal = false"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">耗材代碼 <span class="text-danger">*</span></label>
+                  <input v-model="implantForm.code" type="text" class="form-control"
+                         placeholder="如：TLIF-A1" :disabled="isImplantEdit">
+                  <div class="form-text" v-if="isImplantEdit">代碼為唯一識別，不可修改</div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">名稱</label>
+                  <input v-model="implantForm.name" type="text" class="form-control" placeholder="完整品名">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">類別 <span class="text-danger">*</span></label>
+                  <select v-model="implantForm.category" class="form-select">
+                    <option v-for="c in IMPLANT_CATS" :key="c" :value="c">{{ c }}</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">廠牌</label>
+                  <input v-model="implantForm.brand" type="text" class="form-control" placeholder="廠牌名稱">
+                </div>
+                <div class="mb-0">
+                  <label class="form-label fw-semibold">備註</label>
+                  <input v-model="implantForm.note" type="text" class="form-control" placeholder="選填">
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" @click="showImplantModal = false">取消</button>
+                <button class="btn btn-primary" :disabled="implantSaving" @click="submitImplant">
+                  <span v-if="implantSaving" class="spinner-border spinner-border-sm me-1"></span>
+                  {{ isImplantEdit ? '更新' : '新增' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /Tab 3 -->
 
     </div><!-- /container -->
 

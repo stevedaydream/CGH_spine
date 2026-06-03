@@ -151,14 +151,12 @@ function getAnalyticsData() {
   var avgPct = completeness.length > 0
     ? Math.round(completeness.reduce(function(s, r) { return s + r.pct; }, 0) / completeness.length)
     : 0;
-  var pending = getPendingRecords().length;
-
   return {
     summary: {
       totalPatients:  totalPatients,
       activePatients: activePatients,
       avgCompleteness: avgPct,
-      pendingReview:  pending
+      pendingReview:  0   // 由 getDashboardData() 統一補入，避免重複讀取
     },
     cageStats:    cageStats,
     opStats:      opStats,
@@ -176,13 +174,16 @@ function getAnalyticsData() {
 
 /**
  * 醫護後台一次取得所有資料（減少 round-trip）
+ * 效能優化：getPendingRecords() 只讀一次，補入 analytics.summary.pendingReview
  */
 function getDashboardData() {
   try {
-    var analytics = getAnalyticsData();
+    var pending   = getPendingRecords();           // 只讀一次
+    var analytics = getAnalyticsData();            // pendingReview 在此為 0
+    analytics.summary.pendingReview = pending.length;  // 補入正確值
     return {
       summary:  analytics.summary,
-      pending:  getPendingRecords(),
+      pending:  pending,
       patients: getPatientList()
     };
   } catch(e) {
@@ -729,6 +730,79 @@ function getMcidData_() {
     Logger.log('[getMcidData_] ' + e.message);
     return { summary: {}, patients: [] };
   }
+}
+
+/**
+ * 搜尋病患，支援 researchId 或 chart_number 查詢
+ * @param {string} query  研究編號或病歷號
+ * @returns {Object} { found, researchId, chartNumber, opDate, opName, surgeon, daysPostOp, lineStatus, lastVasBack, lastVasLeg, lastDays }
+ */
+function searchPatient_(query) {
+  if (!query) return { found: false };
+  var ss      = SpreadsheetApp.getActiveSpreadsheet();
+  var opSheet = ss.getSheetByName(SHEET.OPERATION);
+  var opData  = opSheet.getDataRange().getValues().slice(1);
+  var privMap = _getPrivacyMap_();
+
+  var q = String(query).trim().toLowerCase();
+
+  for (var i = 0; i < opData.length; i++) {
+    var row = opData[i];
+    var rid = String(row[OP_COL.RESEARCH_ID] || '');
+    if (!rid) continue;
+    var chartNum = (privMap[rid] && privMap[rid].chartNumber) ? String(privMap[rid].chartNumber).toLowerCase() : '';
+
+    if (rid.toLowerCase() === q || chartNum === q) {
+      var opDate = new Date(row[OP_COL.OP_DATE]);
+      var daysPostOp = isNaN(opDate.getTime()) ? '-' : daysDiff_(opDate, new Date());
+      var lastRec = getLastRecord(rid);
+      return {
+        found:        true,
+        researchId:   rid,
+        chartNumber:  (privMap[rid] && privMap[rid].chartNumber) || '',
+        opDate:       formatDate_(opDate),
+        opName:       row[OP_COL.OP_NAME]  || '',
+        surgeon:      row[OP_COL.SURGEON]  || '',
+        daysPostOp:   daysPostOp,
+        lineStatus:   row[OP_COL.LINE_STATUS] || 'unbound',
+        lastVasBack:  lastRec ? lastRec.vasBack    : '',
+        lastVasLeg:   lastRec ? lastRec.vasLeg     : '',
+        lastDays:     lastRec ? lastRec.daysPostOp : ''
+      };
+    }
+  }
+  return { found: false };
+}
+
+/**
+ * 取得回診登記所需資訊（病患摘要 + 綁定碼），供回診登記頁使用
+ * @param {string} researchId
+ * @returns {Object} patient fields + { bindingCode, expiresAt }
+ */
+function getClinicCheckInInfo_(researchId) {
+  if (!researchId) throw new Error('researchId 必填');
+  var patient = searchPatient_(researchId);
+  if (!patient.found) return { found: false };
+
+  // 取得或產生綁定碼（僅限非 control 組）
+  var bindingCode = '', expiresAt = '';
+  try {
+    bindingCode = generateBindingCode_(researchId);
+    // 取到期時間
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var bindSheet = ss.getSheetByName(SHEET.BINDING_CODE);
+    if (bindSheet) {
+      var bData = bindSheet.getDataRange().getValues();
+      for (var i = bData.length - 1; i >= 1; i--) {
+        if (String(bData[i][BIND_COL.RESEARCH_ID]) === researchId && !bData[i][BIND_COL.USED]) {
+          expiresAt = String(bData[i][BIND_COL.EXPIRES_AT]);
+          break;
+        }
+      }
+    }
+  } catch(e) {}
+
+  return Object.assign(patient, { bindingCode: bindingCode, expiresAt: expiresAt });
 }
 
 /**

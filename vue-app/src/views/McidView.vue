@@ -73,7 +73,7 @@ function improveBadge(val, threshold) {
       </span>
       <div class="d-flex gap-2">
         <RouterLink to="/"          class="btn btn-outline-light btn-sm"><i class="bi bi-house me-1"></i>後台</RouterLink>
-        <RouterLink to="/form"      class="btn btn-outline-light btn-sm"><i class="bi bi-pencil-square me-1"></i>填表</RouterLink>
+        <RouterLink to="/form"      class="btn btn-outline-light btn-sm"><i class="bi bi-person-plus me-1"></i>手術登錄</RouterLink>
         <RouterLink to="/analytics" class="btn btn-outline-light btn-sm"><i class="bi bi-bar-chart-line me-1"></i>分析</RouterLink>
       </div>
     </nav>

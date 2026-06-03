@@ -123,15 +123,11 @@ function getOperationRecord(researchId) {
 }
 
 /**
- * 產生下一個追蹤日誌流水號
- * @returns {string}  例如 LOG-000123
+ * 產生唯一追蹤日誌流水號（時戳 + 隨機數，避免並發重複）
+ * @returns {string}  例如 LOG-1714800000000-4382
  */
 function generateLogId() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET.FOLLOW_UP);
-  var lastRow = sheet.getLastRow();
-  var num = Math.max(lastRow, 1);
-  return 'LOG-' + String(num).padStart(6, '0');
+  return 'LOG-' + new Date().getTime() + '-' + Math.floor(Math.random() * 10000);
 }
 
 /**

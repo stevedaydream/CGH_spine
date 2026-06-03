@@ -15,7 +15,14 @@
       "Bash(python -c \"import PyPDF2; print\\('PyPDF2 available'\\)\")",
       "Bash(pip install *)",
       "Bash(powershell -Command ' Add-Type -AssemblyName System.Text.Encoding $bytes = [System.IO.File]::ReadAllBytes\\('\\\\''C:/Users/user/.claude/projects/C--Users-user-OneDrive----project-spine-CGH-project/2fb42a35-84a2-40a4-952c-61b931816202/tool-results/webfetch-1776303401713-3aekzf.pdf'\\\\''\\) $text = [System.Text.Encoding]::UTF8.GetString\\($bytes\\) $text | Select-String -Pattern '\\\\''[\\\\u4e00-\\\\u9fff]+'\\\\'' -AllMatches | ForEach-Object { $_.Matches.Value } | Join-String -Separator '\\\\'' '\\\\'' | Select-Object -First 1 ')",
-      "Bash(powershell *)"
+      "Bash(powershell *)",
+      "Bash(npm --version)",
+      "Bash(clasp *)",
+      "PowerShell(clasp *)",
+      "PowerShell(npm install *)",
+      "PowerShell(wrangler *)",
+      "PowerShell(& \"C:\\\\Users\\\\User\\\\AppData\\\\Roaming\\\\npm\\\\wrangler.cmd\" --version)",
+      "Bash(git restore *)"
     ]
   }
 }
