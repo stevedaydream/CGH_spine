@@ -140,7 +140,7 @@ function triggerBadges(triggers) {
 }
 
 // ─────────────────────────────────────────────────────────
-// Tab 2：衛教 QA 管理（與原 HealthEduView 相同）
+// Tab 2：衛教 QA 管理
 // ─────────────────────────────────────────────────────────
 const eduItems    = ref([])
 const eduLoading  = ref(false)
@@ -312,189 +312,224 @@ onMounted(() => { loadReply(); loadEdu(); loadImplants() })
 </script>
 
 <template>
-  <div style="background:#f0f4f8;min-height:100vh;font-family:'Segoe UI',sans-serif">
+  <div style="background: var(--color-bg-base); min-height: 100vh; font-family: var(--font-family);">
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-dark px-3 py-2" style="background:linear-gradient(135deg,#1a73e8,#0d47a1)">
-      <span class="navbar-brand fw-bold"><i class="bi bi-gear me-2"></i>系統設定</span>
-      <div class="d-flex gap-2">
-        <RouterLink to="/"       class="btn btn-outline-light btn-sm"><i class="bi bi-house me-1"></i>後台</RouterLink>
-        <RouterLink to="/form"   class="btn btn-outline-light btn-sm"><i class="bi bi-person-plus me-1"></i>手術登錄</RouterLink>
-        <RouterLink to="/export" class="btn btn-outline-light btn-sm"><i class="bi bi-download me-1"></i>匯出</RouterLink>
+    <!-- Navbar / Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark px-4 py-3 shadow-sm border-bottom" style="background: linear-gradient(135deg, var(--color-primary), #063e45);">
+      <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
+        <span class="navbar-brand fw-bold fs-5 d-flex align-items-center">
+          <i class="bi bi-gear me-2" aria-hidden="true"></i>系統設定
+        </span>
+        <div class="d-flex gap-2 flex-wrap">
+          <span class="text-white-50 small align-self-center me-2 tabular-nums">臨床管理端</span>
+          <RouterLink to="/" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-house" aria-hidden="true"></i>儀表板
+          </RouterLink>
+          <RouterLink to="/form" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-person-plus" aria-hidden="true"></i>手術登錄
+          </RouterLink>
+          <RouterLink to="/analytics" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-bar-chart-line" aria-hidden="true"></i>分析
+          </RouterLink>
+          <RouterLink to="/mcid" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>MCID
+          </RouterLink>
+          <RouterLink to="/export" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-download" aria-hidden="true"></i>匯出
+          </RouterLink>
+          <RouterLink to="/irb" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-shield-check" aria-hidden="true"></i>IRB表單
+          </RouterLink>
+          <RouterLink to="/clinic" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>回診登記
+          </RouterLink>
+          <RouterLink to="/demo" class="btn btn-outline-warning btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-play-circle" aria-hidden="true"></i>Demo演示
+          </RouterLink>
+        </div>
       </div>
     </nav>
 
-    <div class="container-fluid py-4 px-4" style="max-width:1100px">
+    <div class="container-fluid py-4 px-4 max-width-xl">
 
-      <!-- 主 Tab -->
-      <ul class="nav nav-tabs mb-4">
-        <li class="nav-item">
-          <button class="nav-link" :class="mainTab === 'bot' ? 'active fw-bold' : ''"
+      <!-- 主 Tab 切換器 -->
+      <div class="card mb-4 border-0 shadow-sm" style="border-radius: 12px; background: #fff;">
+        <div class="card-body p-2 d-flex gap-2 flex-wrap">
+          <button class="btn btn-sm px-4 py-2.5 fw-bold d-flex align-items-center gap-2 transition-btn"
+                  :class="mainTab === 'bot' ? 'btn-primary shadow-sm' : 'btn-light text-muted'"
                   @click="mainTab = 'bot'">
-            <i class="bi bi-robot me-1"></i>LINE Bot 回覆設定
+            <i class="bi bi-robot" aria-hidden="true"></i>LINE Bot 回覆設定
           </button>
-        </li>
-        <li class="nav-item">
-          <button class="nav-link" :class="mainTab === 'edu' ? 'active fw-bold' : ''"
+          <button class="btn btn-sm px-4 py-2.5 fw-bold d-flex align-items-center gap-2 transition-btn"
+                  :class="mainTab === 'edu' ? 'btn-primary shadow-sm' : 'btn-light text-muted'"
                   @click="mainTab = 'edu'">
-            <i class="bi bi-journal-medical me-1"></i>衛教 QA 管理
+            <i class="bi bi-journal-medical" aria-hidden="true"></i>衛教 QA 管理
           </button>
-        </li>
-        <li class="nav-item">
-          <button class="nav-link" :class="mainTab === 'implant' ? 'active fw-bold' : ''"
+          <button class="btn btn-sm px-4 py-2.5 fw-bold d-flex align-items-center gap-2 transition-btn"
+                  :class="mainTab === 'implant' ? 'btn-primary shadow-sm' : 'btn-light text-muted'"
                   @click="mainTab = 'implant'">
-            <i class="bi bi-box-seam me-1"></i>耗材管理
+            <i class="bi bi-box-seam" aria-hidden="true"></i>耗材管理
           </button>
-        </li>
-      </ul>
+        </div>
+      </div>
 
       <!-- ════════════════════════════════════════
            Tab 1：LINE Bot 回覆設定
       ════════════════════════════════════════ -->
       <div v-show="mainTab === 'bot'">
 
-        <!-- 統計列 -->
-        <div class="row g-3 mb-3">
-          <div class="col-auto">
-            <div class="card border-0 shadow-sm px-3 py-2">
-              <div class="text-muted small">系統訊息</div>
-              <div class="fw-bold fs-5 text-primary">{{ sysItems.length }}</div>
+        <!-- 統計與快捷區 -->
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-sm-auto">
+            <div class="clinical-card px-4 py-2.5 d-flex align-items-center justify-content-between gap-3">
+              <div>
+                <div class="text-muted small">系統訊息</div>
+                <div class="fw-bold fs-5 text-teal tabular-nums" style="color: var(--color-primary);">{{ sysItems.length }}</div>
+              </div>
             </div>
           </div>
-          <div class="col-auto">
-            <div class="card border-0 shadow-sm px-3 py-2">
-              <div class="text-muted small">自訂關鍵字</div>
-              <div class="fw-bold fs-5 text-success">{{ kwItems.length }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sub-tab -->
-        <ul class="nav nav-pills mb-3 gap-2">
-          <li class="nav-item">
-            <button class="nav-link" :class="botSubTab === 'sys' ? 'active' : 'btn-outline-secondary text-secondary'"
-                    @click="botSubTab = 'sys'">系統訊息 / 問卷步驟</button>
-          </li>
-          <li class="nav-item">
-            <button class="nav-link" :class="botSubTab === 'kw' ? 'active' : 'btn-outline-secondary text-secondary'"
-                    @click="botSubTab = 'kw'">自訂關鍵字</button>
-          </li>
-        </ul>
-
-        <!-- ── 系統訊息 ── -->
-        <div v-show="botSubTab === 'sys'">
-          <div v-if="replyLoading" class="text-center text-muted py-5">
-            <div class="spinner-border spinner-border-sm me-2"></div>載入中…
-          </div>
-          <div v-else class="card border-0 shadow-sm">
-            <div class="card-body p-0">
-              <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size:.85rem">
-                  <thead class="table-light">
-                    <tr>
-                      <th style="width:80px">群組</th>
-                      <th style="width:120px">用途說明</th>
-                      <th style="width:180px">觸發方式</th>
-                      <th>內容預覽</th>
-                      <th style="width:60px">啟用</th>
-                      <th style="width:60px"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="item in sysItems" :key="item.id" :style="!item.active ? 'opacity:.45' : ''">
-                      <td>
-                        <span class="badge rounded-pill"
-                              :style="item.group === '問卷步驟' ? 'background:#e8f4fd;color:#0d6efd' : 'background:#e8f0fe;color:#1a73e8'">
-                          {{ item.group }}
-                        </span>
-                      </td>
-                      <td class="small fw-bold">{{ item.note || item.key }}</td>
-                      <td>
-                        <span v-if="triggerBadges(item.triggers).length">
-                          <span v-for="kw in triggerBadges(item.triggers)" :key="kw"
-                                class="badge bg-secondary me-1 mb-1" style="font-size:.7rem">{{ kw }}</span>
-                        </span>
-                        <span v-else class="text-muted small">（事件觸發）</span>
-                      </td>
-                      <td class="text-muted small"
-                          style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                        {{ item.content }}
-                      </td>
-                      <td>
-                        <div class="form-check form-switch mb-0">
-                          <input class="form-check-input" type="checkbox"
-                                 :checked="item.active" @change="toggleReply(item)">
-                        </div>
-                      </td>
-                      <td>
-                        <button class="btn btn-outline-primary btn-sm px-2" @click="openSysEdit(item)" title="編輯">
-                          <i class="bi bi-pencil"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+          <div class="col-6 col-sm-auto">
+            <div class="clinical-card px-4 py-2.5 d-flex align-items-center justify-content-between gap-3">
+              <div>
+                <div class="text-muted small">自訂關鍵字</div>
+                <div class="fw-bold fs-5 text-success tabular-nums">{{ kwItems.length }}</div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- ── 自訂關鍵字 ── -->
+        <!-- 子分頁按鈕 -->
+        <div class="d-flex gap-2 mb-3">
+          <button class="btn btn-sm px-3.5 py-2 fw-semibold transition-btn"
+                  :class="botSubTab === 'sys' ? 'btn-teal text-white' : 'btn-outline-secondary text-secondary border-dashed'"
+                  @click="botSubTab = 'sys'">系統訊息 / 問卷步驟</button>
+          <button class="btn btn-sm px-3.5 py-2 fw-semibold transition-btn"
+                  :class="botSubTab === 'kw' ? 'btn-teal text-white' : 'btn-outline-secondary text-secondary border-dashed'"
+                  @click="botSubTab = 'kw'">自訂關鍵字規則</button>
+        </div>
+
+        <!-- 子分頁 1：系統訊息 -->
+        <div v-show="botSubTab === 'sys'">
+          <div v-if="replyLoading" class="text-center text-muted py-5">
+            <div class="spinner-border text-teal mb-2" role="status">
+              <span class="visually-hidden">載入中…</span>
+            </div>
+            <div>載入系統訊息設定中…</div>
+          </div>
+          <div v-else class="clinical-card overflow-hidden">
+            <div class="table-responsive">
+              <table class="clinical-table mb-0" style="font-size: .88rem;">
+                <thead>
+                  <tr>
+                    <th scope="col" style="width: 100px;">群組</th>
+                    <th scope="col" style="width: 180px;">用途說明</th>
+                    <th scope="col" style="width: 220px;">觸發條件 / 關鍵字</th>
+                    <th scope="col">回覆內容預覽</th>
+                    <th scope="col" style="width: 80px;">狀態</th>
+                    <th scope="col" style="width: 80px; text-align: right;">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in sysItems" :key="item.id" :style="!item.active ? 'opacity: 0.55;' : ''">
+                    <td>
+                      <span class="badge"
+                            :style="item.group === '問卷步驟' ? 'background: #e0f2fe; color: #0369a1;' : 'background: var(--color-primary-light); color: var(--color-primary);'">
+                        {{ item.group }}
+                      </span>
+                    </td>
+                    <td><strong>{{ item.note || item.key }}</strong></td>
+                    <td>
+                      <div v-if="triggerBadges(item.triggers).length" class="d-flex flex-wrap gap-1">
+                        <span v-for="kw in triggerBadges(item.triggers)" :key="kw"
+                              class="badge bg-secondary px-2 py-1 font-monospace" style="font-size: .75rem;">{{ kw }}</span>
+                      </div>
+                      <span v-else class="text-muted small">（系統事件觸發）</span>
+                    </td>
+                    <td class="text-muted small">
+                      <div class="text-truncate-clinical" style="max-width: 320px;" :title="item.content">
+                        {{ item.content }}
+                      </div>
+                    </td>
+                    <td>
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input focus-ring" type="checkbox"
+                               :checked="item.active" @change="toggleReply(item)"
+                               :aria-label="`啟用或停用 ${item.note || item.key}`">
+                      </div>
+                    </td>
+                    <td style="text-align: right;">
+                      <button class="btn btn-outline-primary btn-sm p-1.5" @click="openSysEdit(item)" aria-label="編輯系統訊息">
+                        <i class="bi bi-pencil" aria-hidden="true"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 子分頁 2：自訂關鍵字 -->
         <div v-show="botSubTab === 'kw'">
           <div class="d-flex justify-content-end mb-3">
-            <button class="btn btn-success" @click="openKwAdd">
-              <i class="bi bi-plus-circle me-1"></i>新增關鍵字規則
+            <button class="btn btn-success px-3.5 py-2 d-flex align-items-center gap-1.5 fw-semibold shadow-sm" @click="openKwAdd">
+              <i class="bi bi-plus-circle" aria-hidden="true"></i>新增關鍵字規則
             </button>
           </div>
           <div v-if="replyLoading" class="text-center text-muted py-5">
-            <div class="spinner-border spinner-border-sm me-2"></div>載入中…
+            <div class="spinner-border text-teal mb-2" role="status">
+              <span class="visually-hidden">載入中…</span>
+            </div>
+            <div>載入關鍵字規則中…</div>
           </div>
-          <div v-else-if="kwItems.length === 0" class="text-center text-muted py-5">
-            <i class="bi bi-chat-left-text fs-2 d-block mb-2"></i>
-            尚無自訂關鍵字，點上方「新增」開始建立
+          <div v-else-if="kwItems.length === 0" class="text-center text-muted py-5 clinical-card bg-white">
+            <i class="bi bi-chat-left-text fs-2 text-muted d-block mb-3" aria-hidden="true"></i>
+            <span class="fw-medium">目前無自訂關鍵字規則，請點擊上方按鈕建立</span>
           </div>
-          <div v-else class="card border-0 shadow-sm">
-            <div class="card-body p-0">
-              <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size:.85rem">
-                  <thead class="table-light">
-                    <tr>
-                      <th>觸發關鍵字</th>
-                      <th>回覆內容預覽</th>
-                      <th style="width:60px">啟用</th>
-                      <th style="width:100px"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="item in kwItems" :key="item.id" :style="!item.active ? 'opacity:.45' : ''">
-                      <td>
+          <div v-else class="clinical-card overflow-hidden">
+            <div class="table-responsive">
+              <table class="clinical-table mb-0" style="font-size: .88rem;">
+                <thead>
+                  <tr>
+                    <th scope="col" style="width: 250px;">觸發關鍵字</th>
+                    <th scope="col">回覆內容預覽</th>
+                    <th scope="col" style="width: 80px;">狀態</th>
+                    <th scope="col" style="width: 120px; text-align: right;">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in kwItems" :key="item.id" :style="!item.active ? 'opacity: 0.55;' : ''">
+                    <td>
+                      <div class="d-flex flex-wrap gap-1">
                         <span v-for="kw in triggerBadges(item.triggers)" :key="kw"
-                              class="badge bg-primary me-1" style="font-size:.78rem">{{ kw }}</span>
-                      </td>
-                      <td class="text-muted small"
-                          style="max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                              class="badge bg-teal-soft text-teal border border-teal-light px-2.5 py-1 font-monospace" style="font-size: .8rem;">{{ kw }}</span>
+                      </div>
+                    </td>
+                    <td class="text-muted small">
+                      <div class="text-truncate-clinical" style="max-width: 450px;" :title="item.content">
                         {{ item.content }}
-                      </td>
-                      <td>
-                        <div class="form-check form-switch mb-0">
-                          <input class="form-check-input" type="checkbox"
-                                 :checked="item.active" @change="toggleReply(item)">
-                        </div>
-                      </td>
-                      <td>
-                        <div class="d-flex gap-1">
-                          <button class="btn btn-outline-primary btn-sm px-2" @click="openKwEdit(item)">
-                            <i class="bi bi-pencil"></i>
-                          </button>
-                          <button class="btn btn-outline-danger btn-sm px-2" @click="removeKw(item)">
-                            <i class="bi bi-trash"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input focus-ring" type="checkbox"
+                               :checked="item.active" @change="toggleReply(item)"
+                               :aria-label="`啟用或停用關鍵字 ${item.triggers}`">
+                      </div>
+                    </td>
+                    <td style="text-align: right;">
+                      <div class="d-flex gap-1 justify-content-end">
+                        <button class="btn btn-outline-primary btn-sm p-1.5" @click="openKwEdit(item)" aria-label="編輯關鍵字規則">
+                          <i class="bi bi-pencil" aria-hidden="true"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm p-1.5" @click="removeKw(item)" aria-label="刪除關鍵字規則">
+                          <i class="bi bi-trash" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -505,122 +540,124 @@ onMounted(() => { loadReply(); loadEdu(); loadImplants() })
       ════════════════════════════════════════ -->
       <div v-show="mainTab === 'edu'">
 
-        <!-- 統計列 -->
-        <div class="row g-3 mb-3">
-          <div class="col-auto">
-            <div class="card border-0 shadow-sm px-3 py-2">
+        <!-- 統計與操作列 -->
+        <div class="row g-3 mb-4 align-items-center">
+          <div class="col-sm-auto d-flex gap-3">
+            <div class="clinical-card px-4 py-2.5">
               <div class="text-muted small">全部條目</div>
-              <div class="fw-bold fs-5 text-primary">{{ eduItems.length }}</div>
+              <div class="fw-bold fs-5 text-teal tabular-nums" style="color: var(--color-primary);">{{ eduItems.length }}</div>
             </div>
-          </div>
-          <div class="col-auto">
-            <div class="card border-0 shadow-sm px-3 py-2">
+            <div class="clinical-card px-4 py-2.5">
               <div class="text-muted small">啟用中</div>
-              <div class="fw-bold fs-5 text-success">{{ eduItems.filter(q => q.active).length }}</div>
+              <div class="fw-bold fs-5 text-success tabular-nums">{{ eduItems.filter(q => q.active).length }}</div>
             </div>
-          </div>
-          <div class="col-auto">
-            <div class="card border-0 shadow-sm px-3 py-2">
+            <div class="clinical-card px-4 py-2.5">
               <div class="text-muted small">類別數</div>
-              <div class="fw-bold fs-5">{{ categories.length }}</div>
+              <div class="fw-bold fs-5 tabular-nums">{{ categories.length }}</div>
             </div>
           </div>
-          <div class="col d-flex align-items-center justify-content-end">
-            <button class="btn btn-primary" @click="openEduAdd">
-              <i class="bi bi-plus-circle me-1"></i>新增衛教 QA
+          <div class="col-sm d-flex justify-content-sm-end">
+            <button class="btn btn-primary px-3.5 py-2 d-flex align-items-center gap-1.5 fw-semibold shadow-sm" @click="openEduAdd">
+              <i class="bi bi-plus-circle" aria-hidden="true"></i>新增衛教 QA
             </button>
           </div>
         </div>
 
-        <!-- 類別 Tabs -->
-        <div class="mb-3 d-flex flex-wrap gap-2">
-          <button class="btn btn-sm" :class="selectedCat === '全部' ? 'btn-primary' : 'btn-outline-secondary'"
+        <!-- 類別選擇選單 -->
+        <div class="mb-3 d-flex flex-wrap gap-1.5">
+          <button class="btn btn-sm px-3 py-1.5 fw-semibold transition-btn"
+                  :class="selectedCat === '全部' ? 'btn-teal text-white' : 'btn-light text-muted'"
                   @click="selectedCat = '全部'">
-            全部（{{ eduItems.length }}）
+            全部 ({{ eduItems.length }})
           </button>
-          <button v-for="cat in categories" :key="cat" class="btn btn-sm"
-                  :class="selectedCat === cat ? 'btn-primary' : 'btn-outline-secondary'"
+          <button v-for="cat in categories" :key="cat"
+                  class="btn btn-sm px-3 py-1.5 fw-semibold transition-btn"
+                  :class="selectedCat === cat ? 'btn-teal text-white' : 'btn-light text-muted'"
                   @click="selectedCat = cat">
-            {{ cat }}（{{ eduItems.filter(q => q.category === cat).length }}）
+            {{ cat }} ({{ eduItems.filter(q => q.category === cat).length }})
           </button>
         </div>
 
-        <!-- QA 表格 -->
-        <div class="card border-0 rounded-3 shadow-sm">
-          <div class="card-body p-0">
-            <div v-if="eduLoading" class="text-center py-5">
-              <div class="spinner-border text-primary me-2"></div><span class="text-muted">載入中…</span>
-            </div>
-            <div v-else-if="filtered.length === 0" class="text-center text-muted py-5">
-              <i class="bi bi-inbox fs-2 d-block mb-2"></i>尚無衛教 QA，點上方「新增」開始建立
-            </div>
-            <div v-else class="table-responsive">
-              <table class="table table-hover align-middle mb-0" style="font-size:.85rem">
-                <thead class="table-light">
-                  <tr>
-                    <th style="width:40px">序</th>
-                    <th style="width:100px">類別</th>
-                    <th style="width:180px">問題</th>
-                    <th>回答預覽</th>
-                    <th style="width:90px">適用天數</th>
-                    <th style="width:50px">影片</th>
-                    <th style="width:50px">單張</th>
-                    <th style="width:60px">啟用</th>
-                    <th style="width:100px"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="qa in filtered" :key="qa.id" :style="!qa.active ? 'opacity:.45' : ''">
-                    <td class="text-muted small">{{ qa.displayOrder }}</td>
-                    <td>
-                      <span class="badge rounded-pill" style="background:#e8f0fe;color:#1a73e8;font-size:.75rem">
-                        {{ qa.category }}
-                      </span>
-                    </td>
-                    <td class="fw-bold small">{{ qa.question }}</td>
-                    <td class="text-muted small"
-                        style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        <!-- QA 資料表 -->
+        <div v-if="eduLoading" class="text-center text-muted py-5">
+          <div class="spinner-border text-teal mb-2" role="status">
+            <span class="visually-hidden">載入中…</span>
+          </div>
+          <div>載入衛教 QA 列表中…</div>
+        </div>
+        <div v-else-if="filtered.length === 0" class="text-center text-muted py-5 clinical-card bg-white">
+          <i class="bi bi-inbox fs-2 text-muted d-block mb-3" aria-hidden="true"></i>
+          <span class="fw-medium">目前無此類別的衛教 QA 內容</span>
+        </div>
+        <div v-else class="clinical-card overflow-hidden">
+          <div class="table-responsive">
+            <table class="clinical-table mb-0" style="font-size: .88rem;">
+              <thead>
+                <tr>
+                  <th scope="col" style="width: 50px;">序</th>
+                  <th scope="col" style="width: 120px;">類別</th>
+                  <th scope="col" style="width: 220px;">問題</th>
+                  <th scope="col">回答預覽</th>
+                  <th scope="col" style="width: 120px;">適用天數</th>
+                  <th scope="col" style="width: 60px; text-align: center;">影片</th>
+                  <th scope="col" style="width: 60px; text-align: center;">單張</th>
+                  <th scope="col" style="width: 80px;">狀態</th>
+                  <th scope="col" style="width: 120px; text-align: right;">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="qa in filtered" :key="qa.id" :style="!qa.active ? 'opacity: 0.55;' : ''">
+                  <td class="text-muted small tabular-nums">{{ qa.displayOrder }}</td>
+                  <td>
+                    <span class="badge bg-soft-teal text-teal border border-teal-light px-2.5 py-1">
+                      {{ qa.category }}
+                    </span>
+                  </td>
+                  <td class="fw-bold small">{{ qa.question }}</td>
+                  <td class="text-muted small">
+                    <div class="text-truncate-clinical" style="max-width: 280px;" :title="qa.answer">
                       {{ qa.answer }}
-                    </td>
-                    <td>
-                      <span class="badge bg-light text-dark border" style="font-size:.72rem">
-                        {{ daysLabel(qa) }}
-                      </span>
-                    </td>
-                    <td>
-                      <a v-if="qa.videoUrl" :href="qa.videoUrl" target="_blank"
-                         class="btn btn-link btn-sm p-0" title="影片">
-                        <i class="bi bi-play-circle-fill text-danger"></i>
-                      </a>
-                      <span v-else class="text-muted">—</span>
-                    </td>
-                    <td>
-                      <a v-if="qa.pdfUrl" :href="qa.pdfUrl" target="_blank"
-                         class="btn btn-link btn-sm p-0" title="衛教單張">
-                        <i class="bi bi-file-earmark-pdf-fill text-warning"></i>
-                      </a>
-                      <span v-else class="text-muted">—</span>
-                    </td>
-                    <td>
-                      <div class="form-check form-switch mb-0">
-                        <input class="form-check-input" type="checkbox"
-                               :checked="qa.active" @change="toggleEdu(qa)">
-                      </div>
-                    </td>
-                    <td>
-                      <div class="d-flex gap-1">
-                        <button class="btn btn-outline-primary btn-sm px-2" @click="openEduEdit(qa)">
-                          <i class="bi bi-pencil"></i>
-                        </button>
-                        <button class="btn btn-outline-danger btn-sm px-2" @click="removeEdu(qa)">
-                          <i class="bi bi-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                    </div>
+                  </td>
+                  <td class="tabular-nums">
+                    <span class="badge bg-light text-secondary border" style="font-size: .75rem;">
+                      {{ daysLabel(qa) }}
+                    </span>
+                  </td>
+                  <td style="text-align: center;">
+                    <a v-if="qa.videoUrl" :href="qa.videoUrl" target="_blank"
+                       class="btn btn-link btn-sm p-0 d-inline-flex" aria-label="查看衛教影片" title="衛教影片">
+                      <i class="bi bi-play-circle-fill text-danger fs-5"></i>
+                    </a>
+                    <span v-else class="text-muted">—</span>
+                  </td>
+                  <td style="text-align: center;">
+                    <a v-if="qa.pdfUrl" :href="qa.pdfUrl" target="_blank"
+                       class="btn btn-link btn-sm p-0 d-inline-flex" aria-label="下載衛教單張 PDF" title="PDF 單張">
+                      <i class="bi bi-file-earmark-pdf-fill text-warning fs-5"></i>
+                    </a>
+                    <span v-else class="text-muted">—</span>
+                  </td>
+                  <td>
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input focus-ring" type="checkbox"
+                             :checked="qa.active" @change="toggleEdu(qa)"
+                             :aria-label="`啟用或停用衛教 QA 問題：${qa.question}`">
+                    </div>
+                  </td>
+                  <td style="text-align: right;">
+                    <div class="d-flex gap-1 justify-content-end">
+                      <button class="btn btn-outline-primary btn-sm p-1.5" @click="openEduEdit(qa)" aria-label="編輯衛教 QA">
+                        <i class="bi bi-pencil" aria-hidden="true"></i>
+                      </button>
+                      <button class="btn btn-outline-danger btn-sm p-1.5" @click="removeEdu(qa)" aria-label="刪除衛教 QA">
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div><!-- /Tab 2 -->
@@ -630,47 +667,58 @@ onMounted(() => { loadReply(); loadEdu(); loadImplants() })
       ════════════════════════════════════════ -->
       <div v-show="mainTab === 'implant'">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="text-muted small">共 {{ implants.length }} 筆耗材</div>
-          <button class="btn btn-primary btn-sm" @click="openImplantAdd">
-            <i class="bi bi-plus-lg me-1"></i>新增耗材
+          <div class="text-muted small">共 <span class="fw-bold tabular-nums">{{ implants.length }}</span> 筆耗材資訊</div>
+          <button class="btn btn-primary px-3.5 py-2 d-flex align-items-center gap-1.5 fw-semibold shadow-sm" @click="openImplantAdd">
+            <i class="bi bi-plus-circle" aria-hidden="true"></i>新增耗材品項
           </button>
         </div>
 
-        <div class="card border-0 shadow-sm">
+        <div v-if="implantLoading" class="text-center text-muted py-5">
+          <div class="spinner-border text-teal mb-2" role="status">
+            <span class="visually-hidden">載入中…</span>
+          </div>
+          <div>載入耗材清單中…</div>
+        </div>
+        <div v-else-if="!implants.length" class="text-center text-muted py-5 clinical-card bg-white">
+          <i class="bi bi-box-seam fs-2 text-muted d-block mb-3" aria-hidden="true"></i>
+          <span class="fw-medium">目前尚無任何耗材登記</span>
+        </div>
+        <div v-else class="clinical-card overflow-hidden">
           <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead class="table-light">
+            <table class="clinical-table mb-0" style="font-size: .88rem;">
+              <thead>
                 <tr>
-                  <th>代碼</th>
-                  <th>名稱</th>
-                  <th>類別</th>
-                  <th>廠牌</th>
-                  <th>備註</th>
-                  <th style="width:100px"></th>
+                  <th scope="col" style="width: 150px;">耗材代碼</th>
+                  <th scope="col">耗材名稱</th>
+                  <th scope="col" style="width: 140px;">耗材類別</th>
+                  <th scope="col" style="width: 180px;">品牌/廠牌</th>
+                  <th scope="col">備註</th>
+                  <th scope="col" style="width: 120px; text-align: right;">操作</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-if="implantLoading">
-                  <td colspan="6" class="text-center py-3">
-                    <span class="spinner-border spinner-border-sm me-1"></span>載入中…
-                  </td>
-                </tr>
-                <tr v-else-if="!implants.length">
-                  <td colspan="6" class="text-center text-muted py-3">尚無耗材資料</td>
-                </tr>
                 <tr v-for="item in implants" :key="item.code">
-                  <td><strong>{{ item.code }}</strong></td>
+                  <td class="font-monospace"><strong>{{ item.code }}</strong></td>
                   <td>{{ item.name || '—' }}</td>
-                  <td><span class="badge bg-secondary">{{ item.category }}</span></td>
+                  <td>
+                    <span class="badge font-monospace px-2.5 py-1"
+                          :style="{
+                            background: item.category === 'Cage' ? '#ecfdf5' : item.category === 'Screw' ? '#f0f9ff' : '#f5f3ff',
+                            color: item.category === 'Cage' ? '#047857' : item.category === 'Screw' ? '#0369a1' : '#6d28d9',
+                            border: '1px solid currentColor'
+                          }">
+                      {{ item.category }}
+                    </span>
+                  </td>
                   <td>{{ item.brand || '—' }}</td>
                   <td class="text-muted small">{{ item.note || '—' }}</td>
-                  <td>
-                    <div class="d-flex gap-1">
-                      <button class="btn btn-outline-secondary btn-sm" @click="openImplantEdit(item)">
-                        <i class="bi bi-pencil"></i>
+                  <td style="text-align: right;">
+                    <div class="d-flex gap-1 justify-content-end">
+                      <button class="btn btn-outline-primary btn-sm p-1.5" @click="openImplantEdit(item)" aria-label="編輯耗材">
+                        <i class="bi bi-pencil" aria-hidden="true"></i>
                       </button>
-                      <button class="btn btn-outline-danger btn-sm" @click="removeImplant(item)">
-                        <i class="bi bi-trash"></i>
+                      <button class="btn btn-outline-danger btn-sm p-1.5" @click="removeImplant(item)" aria-label="刪除耗材">
+                        <i class="bi bi-trash" aria-hidden="true"></i>
                       </button>
                     </div>
                   </td>
@@ -679,105 +727,66 @@ onMounted(() => { loadReply(); loadEdu(); loadImplants() })
             </table>
           </div>
         </div>
-
-        <!-- 新增/編輯 Modal -->
-        <div v-if="showImplantModal"
-             class="modal d-flex align-items-center justify-content-center"
-             style="position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.45)">
-          <div class="modal-dialog modal-dialog-centered m-0" style="width:420px">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title">{{ isImplantEdit ? '編輯耗材' : '新增耗材' }}</h5>
-                <button class="btn-close" @click="showImplantModal = false"></button>
-              </div>
-              <div class="modal-body">
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">耗材代碼 <span class="text-danger">*</span></label>
-                  <input v-model="implantForm.code" type="text" class="form-control"
-                         placeholder="如：TLIF-A1" :disabled="isImplantEdit">
-                  <div class="form-text" v-if="isImplantEdit">代碼為唯一識別，不可修改</div>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">名稱</label>
-                  <input v-model="implantForm.name" type="text" class="form-control" placeholder="完整品名">
-                </div>
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">類別 <span class="text-danger">*</span></label>
-                  <select v-model="implantForm.category" class="form-select">
-                    <option v-for="c in IMPLANT_CATS" :key="c" :value="c">{{ c }}</option>
-                  </select>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">廠牌</label>
-                  <input v-model="implantForm.brand" type="text" class="form-control" placeholder="廠牌名稱">
-                </div>
-                <div class="mb-0">
-                  <label class="form-label fw-semibold">備註</label>
-                  <input v-model="implantForm.note" type="text" class="form-control" placeholder="選填">
-                </div>
-              </div>
-              <div class="modal-footer">
-                <button class="btn btn-secondary" @click="showImplantModal = false">取消</button>
-                <button class="btn btn-primary" :disabled="implantSaving" @click="submitImplant">
-                  <span v-if="implantSaving" class="spinner-border spinner-border-sm me-1"></span>
-                  {{ isImplantEdit ? '更新' : '新增' }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div><!-- /Tab 3 -->
 
-    </div><!-- /container -->
+    </div>
 
     <!-- ══ 系統訊息編輯 Modal ══ -->
     <Teleport to="body">
       <Transition name="modal-fade">
         <div v-if="showSysModal"
              class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-             style="background:rgba(0,0,0,.5);z-index:9500" @click.self="showSysModal = false">
-          <div class="bg-white rounded-3 shadow-lg" style="width:min(96vw,640px);max-height:92vh;overflow-y:auto">
-            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
-              <div class="fw-bold" style="color:#1a73e8">
-                <i class="bi bi-pencil-square me-2"></i>編輯回覆內容
-              </div>
-              <button class="btn-close" @click="showSysModal = false"></button>
+             style="background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); z-index: 9500;"
+             @click.self="showSysModal = false"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="sysModalTitle">
+          <div class="bg-white rounded-4 shadow-2xl d-flex flex-column border border-light overflow-hidden"
+               style="width: min(96vw, 680px); max-height: 92vh;">
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom bg-light-surface">
+              <h3 class="fw-bold fs-6 m-0 d-flex align-items-center gap-2" id="sysModalTitle" style="color: var(--color-primary);">
+                <i class="bi bi-pencil-square text-teal" aria-hidden="true"></i>
+                編輯系統回覆設定
+              </h3>
+              <button class="btn-close shadow-none" @click="showSysModal = false" aria-label="關閉編輯"></button>
             </div>
-            <div class="px-4 py-3">
-              <!-- 說明 -->
-              <div class="alert alert-info py-2 small mb-3">
-                <strong>{{ sysForm.note || sysForm.key }}</strong>
-                <span v-if="PLACEHOLDER_NOTES[sysForm.key]" class="ms-2 text-muted">
-                  — {{ PLACEHOLDER_NOTES[sysForm.key] }}
-                </span>
+            <div class="px-4 py-3 overflow-auto flex-grow-1">
+              <!-- 說明提醒 -->
+              <div class="alert alert-info py-2.5 px-3 mb-3 small d-flex flex-column gap-1 border-0" style="background-color: var(--color-primary-light); color: var(--color-primary);">
+                <div class="fw-bold"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ sysForm.note || sysForm.key }}</div>
+                <div v-if="PLACEHOLDER_NOTES[sysForm.key]" class="font-monospace mt-1 px-2 py-1 rounded bg-white-50" style="font-size: .8rem;">
+                  動態變數：{{ PLACEHOLDER_NOTES[sysForm.key] }}
+                </div>
               </div>
-              <!-- 觸發關鍵字（僅系統訊息有顯示，問卷步驟無觸發詞） -->
+              <!-- 觸發關鍵字 -->
               <div v-if="sysForm.group === '系統訊息'" class="mb-3">
-                <label class="form-label small fw-bold">觸發關鍵字（逗號分隔）</label>
-                <input v-model="sysForm.triggers" type="text" class="form-control form-control-sm"
-                       placeholder="例：使用說明,說明,help">
-                <div class="form-text">修改後對應的關鍵字即可觸發此回覆（留空表示僅事件觸發）</div>
+                <label for="sysTriggers" class="form-label-clinical mb-2">觸發關鍵字（請以英文半形逗號分隔）</label>
+                <input v-model="sysForm.triggers" id="sysTriggers" type="text"
+                       class="form-control focus-ring font-monospace"
+                       placeholder="例：使用說明,說明,help,功能鍵" autocomplete="off">
+                <div class="form-text small text-muted mt-1">留空表示僅透過 LINE 系統內部事件觸發，不接受文字觸發</div>
               </div>
               <!-- 回覆內容 -->
               <div class="mb-3">
-                <label class="form-label small fw-bold">回覆內容</label>
-                <textarea v-model="sysForm.content" class="form-control form-control-sm" rows="9"
-                          style="font-family:monospace;font-size:.83rem"></textarea>
-                <div class="form-text text-end">{{ sysForm.content.length }} 字</div>
+                <label for="sysContent" class="form-label-clinical mb-2">回覆文字內容</label>
+                <textarea v-model="sysForm.content" id="sysContent"
+                          class="form-control focus-ring font-monospace" rows="10"
+                          style="font-size: .88rem; line-height: 1.5;"></textarea>
+                <div class="form-text text-end small text-muted mt-1 tabular-nums">字數：{{ sysForm.content.length }} 字</div>
               </div>
-              <!-- 啟用 -->
-              <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="sysActive" v-model="sysForm.active">
-                <label class="form-check-label small" for="sysActive">
-                  啟用（停用後 Bot 將使用內建預設文字）
+              <!-- 啟用狀態 -->
+              <div class="form-check form-switch p-0 d-flex align-items-center gap-2">
+                <input class="form-check-input ms-0 focus-ring" type="checkbox" id="sysActive" v-model="sysForm.active">
+                <label class="form-check-label small fw-semibold text-dark" for="sysActive">
+                  啟用此自訂回覆文字（若停用，LINE Bot 將自動採用系統預設範本）
                 </label>
               </div>
             </div>
-            <div class="px-4 py-3 border-top d-flex justify-content-end gap-2">
-              <button class="btn btn-outline-secondary" @click="showSysModal = false">取消</button>
-              <button class="btn btn-primary" :disabled="sysSaving" @click="saveSys">
-                <span v-if="sysSaving" class="spinner-border spinner-border-sm me-1"></span>儲存
+            <div class="px-4 py-3 border-top d-flex justify-content-end gap-2 bg-light-surface">
+              <button class="btn btn-outline-secondary px-4 py-2" @click="showSysModal = false">取消</button>
+              <button class="btn btn-primary px-4 py-2 fw-semibold" :disabled="sysSaving" @click="saveSys">
+                <span v-if="sysSaving" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                儲存回覆設定
               </button>
             </div>
           </div>
@@ -790,41 +799,49 @@ onMounted(() => { loadReply(); loadEdu(); loadImplants() })
       <Transition name="modal-fade">
         <div v-if="showKwModal"
              class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-             style="background:rgba(0,0,0,.5);z-index:9500" @click.self="showKwModal = false">
-          <div class="bg-white rounded-3 shadow-lg" style="width:min(96vw,560px);max-height:92vh;overflow-y:auto">
-            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
-              <div class="fw-bold" style="color:#198754">
-                <i class="bi bi-chat-left-text me-2"></i>{{ isKwEdit ? '編輯關鍵字規則' : '新增關鍵字規則' }}
-              </div>
-              <button class="btn-close" @click="showKwModal = false"></button>
+             style="background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); z-index: 9500;"
+             @click.self="showKwModal = false"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="kwModalTitle">
+          <div class="bg-white rounded-4 shadow-2xl d-flex flex-column border border-light overflow-hidden"
+               style="width: min(96vw, 600px); max-height: 92vh;">
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom bg-light-surface">
+              <h3 class="fw-bold fs-6 m-0 d-flex align-items-center gap-2" id="kwModalTitle" style="color: var(--color-primary);">
+                <i class="bi bi-chat-left-text text-teal" aria-hidden="true"></i>
+                {{ isKwEdit ? '編輯關鍵字规则' : '新增關鍵字規則' }}
+              </h3>
+              <button class="btn-close shadow-none" @click="showKwModal = false" aria-label="關閉關鍵字視窗"></button>
             </div>
-            <div class="px-4 py-3">
+            <div class="px-4 py-3 overflow-auto flex-grow-1">
               <div class="mb-3">
-                <label class="form-label small fw-bold">觸發關鍵字 <span class="text-danger">*</span></label>
-                <input v-model="kwForm.triggers" type="text" class="form-control form-control-sm"
-                       placeholder="例：你好,Hello,Hi">
-                <div class="form-text">多個關鍵字以逗號分隔，完全符合時觸發</div>
-                <div class="mt-1">
+                <label for="kwTriggers" class="form-label-clinical mb-2">觸發關鍵字 <span class="text-danger">*</span></label>
+                <input v-model="kwForm.triggers" id="kwTriggers" type="text"
+                       class="form-control focus-ring font-monospace"
+                       placeholder="例：你好,Hello,資訊" autocomplete="off">
+                <div class="form-text small text-muted mt-1">多個關鍵字以英文半形逗號分隔，病患訊息完全符合時觸發</div>
+                <div class="mt-2 d-flex flex-wrap gap-1">
                   <span v-for="kw in triggerBadges(kwForm.triggers)" :key="kw"
-                        class="badge bg-primary me-1">{{ kw }}</span>
+                        class="badge bg-teal-soft text-teal border border-teal-light font-monospace">{{ kw }}</span>
                 </div>
               </div>
               <div class="mb-3">
-                <label class="form-label small fw-bold">回覆內容 <span class="text-danger">*</span></label>
-                <textarea v-model="kwForm.content" class="form-control form-control-sm" rows="5"
-                          placeholder="病患傳送關鍵字後的回覆文字"></textarea>
-                <div class="form-text text-end">{{ kwForm.content.length }} 字</div>
+                <label for="kwContent" class="form-label-clinical mb-2">回覆訊息內容 <span class="text-danger">*</span></label>
+                <textarea v-model="kwForm.content" id="kwContent"
+                          class="form-control focus-ring font-monospace" rows="6"
+                          placeholder="請輸入病患傳送關鍵字後，LINE Bot 自動回覆之文字內容"></textarea>
+                <div class="form-text text-end small text-muted mt-1 tabular-nums">字數：{{ kwForm.content.length }} 字</div>
               </div>
-              <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="kwActive" v-model="kwForm.active">
-                <label class="form-check-label small" for="kwActive">啟用</label>
+              <div class="form-check form-switch p-0 d-flex align-items-center gap-2">
+                <input class="form-check-input ms-0 focus-ring" type="checkbox" id="kwActive" v-model="kwForm.active">
+                <label class="form-check-label small fw-semibold text-dark" for="kwActive">啟用此規則</label>
               </div>
             </div>
-            <div class="px-4 py-3 border-top d-flex justify-content-end gap-2">
-              <button class="btn btn-outline-secondary" @click="showKwModal = false">取消</button>
-              <button class="btn btn-success" :disabled="kwSaving" @click="saveKw">
-                <span v-if="kwSaving" class="spinner-border spinner-border-sm me-1"></span>
-                {{ isKwEdit ? '儲存變更' : '新增' }}
+            <div class="px-4 py-3 border-top d-flex justify-content-end gap-2 bg-light-surface">
+              <button class="btn btn-outline-secondary px-4 py-2" @click="showKwModal = false">取消</button>
+              <button class="btn btn-success px-4 py-2 fw-semibold" :disabled="kwSaving" @click="saveKw">
+                <span v-if="kwSaving" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                {{ isKwEdit ? '儲存變更' : '新增規則' }}
               </button>
             </div>
           </div>
@@ -837,82 +854,90 @@ onMounted(() => { loadReply(); loadEdu(); loadImplants() })
       <Transition name="modal-fade">
         <div v-if="showEduModal"
              class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-             style="background:rgba(0,0,0,.5);z-index:9500" @click.self="showEduModal = false">
-          <div class="bg-white rounded-3 shadow-lg" style="width:min(96vw,620px);max-height:92vh;overflow-y:auto">
-            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
-              <div class="fw-bold" style="color:#1a73e8">
-                <i class="bi bi-journal-medical me-2"></i>{{ isEduEdit ? '編輯衛教 QA' : '新增衛教 QA' }}
-              </div>
-              <button class="btn-close" @click="showEduModal = false"></button>
+             style="background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); z-index: 9500;"
+             @click.self="showEduModal = false"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="eduModalTitle">
+          <div class="bg-white rounded-4 shadow-2xl d-flex flex-column border border-light overflow-hidden"
+               style="width: min(96vw, 660px); max-height: 92vh;">
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom bg-light-surface">
+              <h3 class="fw-bold fs-6 m-0 d-flex align-items-center gap-2" id="eduModalTitle" style="color: var(--color-primary);">
+                <i class="bi bi-journal-medical text-teal" aria-hidden="true"></i>
+                {{ isEduEdit ? '編輯衛教 QA 條目' : '新增衛教 QA 條目' }}
+              </h3>
+              <button class="btn-close shadow-none" @click="showEduModal = false" aria-label="關閉視窗"></button>
             </div>
-            <div class="px-4 py-3">
+            <div class="px-4 py-3 overflow-auto flex-grow-1">
               <div class="row g-3">
                 <div class="col-sm-7">
-                  <label class="form-label small fw-bold">類別 <span class="text-danger">*</span></label>
-                  <input v-model="eduForm.category" type="text" class="form-control form-control-sm"
-                         list="eduCatList" placeholder="輸入或選擇類別">
+                  <label for="eduCategory" class="form-label-clinical mb-2">衛教類別 <span class="text-danger">*</span></label>
+                  <input v-model="eduForm.category" id="eduCategory" type="text"
+                         class="form-control focus-ring" list="eduCatList"
+                         placeholder="請輸入或選擇衛教類別">
                   <datalist id="eduCatList">
                     <option v-for="c in categories" :key="c" :value="c" />
                   </datalist>
-                  <div class="form-text">新類別直接輸入即可自動建立</div>
+                  <div class="form-text small text-muted mt-1">若為新類別，直接輸入即可自動建立</div>
                 </div>
                 <div class="col-sm-5">
-                  <label class="form-label small fw-bold">顯示排序</label>
-                  <input v-model.number="eduForm.displayOrder" type="number" min="0"
-                         class="form-control form-control-sm" placeholder="數字小的排前面">
+                  <label for="eduOrder" class="form-label-clinical mb-2">顯示排序</label>
+                  <input v-model.number="eduForm.displayOrder" id="eduOrder" type="number" min="0"
+                         class="form-control focus-ring tabular-nums" placeholder="數字越小越靠前">
                 </div>
                 <div class="col-12">
-                  <label class="form-label small fw-bold">適用術後天數（空白 = 不限）</label>
+                  <span class="form-label-clinical d-block mb-2">適用術後時程（空白表示不限）</span>
                   <div class="d-flex align-items-center gap-2">
                     <input v-model.number="eduForm.daysFrom" type="number" min="0"
-                           class="form-control form-control-sm" style="width:90px" placeholder="起">
+                           class="form-control focus-ring tabular-nums" style="width: 100px;" placeholder="D+ 起">
                     <span class="text-muted small">至</span>
                     <input v-model.number="eduForm.daysTo" type="number" min="0"
-                           class="form-control form-control-sm" style="width:90px" placeholder="迄">
+                           class="form-control focus-ring tabular-nums" style="width: 100px;" placeholder="D+ 迄">
                     <span class="text-muted small">天</span>
                   </div>
                 </div>
                 <div class="col-12">
-                  <label class="form-label small fw-bold">問題標題 <span class="text-danger">*</span></label>
-                  <input v-model="eduForm.question" type="text" class="form-control form-control-sm"
-                         placeholder="簡短問題（建議 18 字以內）">
+                  <label for="eduQuestion" class="form-label-clinical mb-2">問題標題 <span class="text-danger">*</span></label>
+                  <input v-model="eduForm.question" id="eduQuestion" type="text"
+                         class="form-control focus-ring" placeholder="請輸入簡明問題（建議 18 字內以利手機顯示）">
                 </div>
                 <div class="col-12">
-                  <label class="form-label small fw-bold">衛教回答 <span class="text-danger">*</span></label>
-                  <textarea v-model="eduForm.answer" class="form-control form-control-sm" rows="5"
-                            placeholder="衛教說明內容"></textarea>
-                  <div class="form-text text-end" :class="eduForm.answer.length > 200 ? 'text-warning' : ''">
+                  <label for="eduAnswer" class="form-label-clinical mb-2">衛教回答內容 <span class="text-danger">*</span></label>
+                  <textarea v-model="eduForm.answer" id="eduAnswer"
+                            class="form-control focus-ring" rows="5"
+                            placeholder="請輸入詳細的衛教指導或解答內容"></textarea>
+                  <div class="form-text text-end small text-muted mt-1 tabular-nums" :class="eduForm.answer.length > 200 ? 'text-warning' : ''">
                     {{ eduForm.answer.length }} 字
                   </div>
                 </div>
                 <div class="col-12">
-                  <label class="form-label small fw-bold">
-                    <i class="bi bi-play-circle text-danger me-1"></i>衛教影片連結（選填）
+                  <label for="eduVideo" class="form-label-clinical mb-2">
+                    <i class="bi bi-play-circle-fill text-danger me-1" aria-hidden="true"></i>衛教影片連結（選填）
                   </label>
-                  <input v-model="eduForm.videoUrl" type="url" class="form-control form-control-sm"
-                         placeholder="https://youtube.com/watch?v=...">
+                  <input v-model="eduForm.videoUrl" id="eduVideo" type="url"
+                         class="form-control focus-ring font-monospace" placeholder="https://youtube.com/watch?v=...">
                 </div>
                 <div class="col-12">
-                  <label class="form-label small fw-bold">
-                    <i class="bi bi-file-earmark-pdf text-warning me-1"></i>衛教單張 PDF 連結（選填）
+                  <label for="eduPdf" class="form-label-clinical mb-2">
+                    <i class="bi bi-file-earmark-pdf-fill text-warning me-1" aria-hidden="true"></i>衛教單張 PDF 連結（選填）
                   </label>
-                  <input v-model="eduForm.pdfUrl" type="url" class="form-control form-control-sm"
-                         placeholder="https://drive.google.com/file/d/...">
-                  <div class="form-text">可貼入 Google Drive 或醫院網站的 PDF 直連網址</div>
+                  <input v-model="eduForm.pdfUrl" id="eduPdf" type="url"
+                         class="form-control focus-ring font-monospace" placeholder="https://drive.google.com/file/d/...">
+                  <div class="form-text small text-muted mt-1">可提供 Google Drive 或雲端文件的 PDF 直連網址</div>
                 </div>
                 <div class="col-12">
-                  <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="eduActive" v-model="eduForm.active">
-                    <label class="form-check-label small" for="eduActive">啟用</label>
+                  <div class="form-check form-switch p-0 d-flex align-items-center gap-2">
+                    <input class="form-check-input ms-0 focus-ring" type="checkbox" id="eduActive" v-model="eduForm.active">
+                    <label class="form-check-label small fw-semibold text-dark" for="eduActive">啟用此衛教 QA 條目</label>
                   </div>
                 </div>
               </div>
             </div>
-            <div class="px-4 py-3 border-top d-flex justify-content-end gap-2">
-              <button class="btn btn-outline-secondary" @click="showEduModal = false">取消</button>
-              <button class="btn btn-primary" :disabled="eduSaving" @click="submitEdu">
-                <span v-if="eduSaving" class="spinner-border spinner-border-sm me-1"></span>
-                {{ isEduEdit ? '儲存變更' : '新增' }}
+            <div class="px-4 py-3 border-top d-flex justify-content-end gap-2 bg-light-surface">
+              <button class="btn btn-outline-secondary px-4 py-2" @click="showEduModal = false">取消</button>
+              <button class="btn btn-primary px-4 py-2 fw-semibold" :disabled="eduSaving" @click="submitEdu">
+                <span v-if="eduSaving" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                儲存衛教內容
               </button>
             </div>
           </div>
@@ -920,14 +945,85 @@ onMounted(() => { loadReply(); loadEdu(); loadImplants() })
       </Transition>
     </Teleport>
 
-    <!-- Toast -->
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9000">
+    <!-- ══ 耗材編輯 Modal ══ -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="showImplantModal"
+             class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+             style="background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); z-index: 9500;"
+             @click.self="showImplantModal = false"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="implantModalTitle">
+          <div class="bg-white rounded-4 shadow-2xl d-flex flex-column border border-light overflow-hidden"
+               style="width: min(96vw, 450px); max-height: 92vh;">
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom bg-light-surface">
+              <h3 class="fw-bold fs-6 m-0 d-flex align-items-center gap-2" id="implantModalTitle" style="color: var(--color-primary);">
+                <i class="bi bi-box-seam text-teal" aria-hidden="true"></i>
+                {{ isImplantEdit ? '編輯耗材品項' : '新增耗材品項' }}
+              </h3>
+              <button class="btn-close shadow-none" @click="showImplantModal = false" aria-label="關閉耗材視窗"></button>
+            </div>
+            <div class="px-4 py-3 overflow-auto flex-grow-1">
+              <div class="mb-3">
+                <label for="implantCode" class="form-label-clinical mb-2">耗材品項代碼 <span class="text-danger">*</span></label>
+                <input v-model="implantForm.code" id="implantCode" type="text"
+                       class="form-control focus-ring font-monospace"
+                       placeholder="如：TLIF-C01, SC-S04" :disabled="isImplantEdit" autocomplete="off">
+                <div class="form-text small text-muted mt-1" v-if="isImplantEdit">代碼為唯一識別鍵值，無法進行修改</div>
+              </div>
+              <div class="mb-3">
+                <label for="implantName" class="form-label-clinical mb-2">耗材名稱</label>
+                <input v-model="implantForm.name" id="implantName" type="text"
+                       class="form-control focus-ring" placeholder="完整耗材品名規格">
+              </div>
+              <div class="mb-3">
+                <label for="implantCategory" class="form-label-clinical mb-2">耗材類別 <span class="text-danger">*</span></label>
+                <select v-model="implantForm.category" id="implantCategory" class="form-select focus-ring">
+                  <option v-for="c in IMPLANT_CATS" :key="c" :value="c">{{ c }}</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="implantBrand" class="form-label-clinical mb-2">品牌與製造廠牌</label>
+                <input v-model="implantForm.brand" id="implantBrand" type="text"
+                       class="form-control focus-ring" placeholder="品牌或製造商名稱">
+              </div>
+              <div class="mb-0">
+                <label for="implantNote" class="form-label-clinical mb-2">臨床備註</label>
+                <input v-model="implantForm.note" id="implantNote" type="text"
+                       class="form-control focus-ring" placeholder="輸入耗材臨床備註">
+              </div>
+            </div>
+            <div class="px-4 py-3 border-top d-flex justify-content-end gap-2 bg-light-surface">
+              <button class="btn btn-outline-secondary px-4 py-2" @click="showImplantModal = false">取消</button>
+              <button class="btn btn-primary px-4 py-2 fw-semibold" :disabled="implantSaving" @click="submitImplant">
+                <span v-if="implantSaving" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                {{ isImplantEdit ? '確認更新' : '確認新增' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Toast container -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9000;">
       <Transition name="toast-fade">
         <div v-if="toast.show"
-             :class="`toast show align-items-center text-white border-0 bg-${toast.type}`">
+             class="toast show align-items-center text-white border-0 shadow-lg px-2 py-1"
+             :class="`bg-${toast.type === 'danger' ? 'danger' : toast.type === 'warning' ? 'warning' : 'success'}`"
+             role="alert"
+             aria-live="assertive"
+             aria-atomic="true">
           <div class="d-flex">
-            <div class="toast-body">{{ toast.msg }}</div>
-            <button class="btn-close btn-close-white me-2 m-auto" @click="toast.show = false"></button>
+            <div class="toast-body fw-medium d-flex align-items-center gap-2">
+              <i v-if="toast.type === 'success'" class="bi bi-check-circle-fill" aria-hidden="true"></i>
+              <i v-else-if="toast.type === 'warning'" class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+              <i v-else class="bi bi-x-circle-fill" aria-hidden="true"></i>
+              {{ toast.msg }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto shadow-none"
+                    @click="toast.show = false" aria-label="關閉通知"></button>
           </div>
         </div>
       </Transition>
@@ -937,9 +1033,110 @@ onMounted(() => { loadReply(); loadEdu(); loadImplants() })
 </template>
 
 <style scoped>
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity .2s; }
-.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
-.toast-fade-enter-active, .toast-fade-leave-active { transition: opacity .3s; }
-.toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; }
-.nav-pills .nav-link:not(.active) { color: #6c757d; }
+.sys-menu-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--color-bg-surface);
+  border-radius: 12px;
+  padding: 6px 0;
+  min-width: 180px;
+  z-index: 1000;
+  border-color: var(--color-border);
+}
+.sys-menu:hover .sys-menu-dropdown {
+  display: block;
+}
+.dropdown-item {
+  padding: 8px 16px;
+  font-size: .85rem;
+  color: var(--color-text-main);
+  white-space: nowrap;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.15s ease;
+}
+.dropdown-item:hover {
+  background-color: var(--color-bg-base);
+}
+.dropdown-item + .dropdown-item {
+  border-top: 1px solid var(--color-border);
+}
+
+.transition-btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Sub tabs sub pills */
+.btn-teal {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+.btn-teal:hover {
+  background-color: #063e45;
+  color: #fff;
+}
+
+.text-teal {
+  color: var(--color-primary) !important;
+}
+.bg-teal-soft {
+  background-color: var(--color-primary-light);
+}
+.border-teal-light {
+  border-color: #ccebe5 !important;
+}
+
+.text-truncate-clinical {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-label-clinical {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.border-dashed {
+  border-style: dashed !important;
+}
+
+/* Modals and toast transitions */
+.modal-fade-enter-active, .modal-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.modal-fade-enter-from, .modal-fade-leave-to {
+  opacity: 0;
+}
+
+.toast-fade-enter-active, .toast-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast-fade-enter-from, .toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* CSS focus indicators */
+.focus-ring:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.25) !important;
+  outline: none !important;
+}
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.3);
+  border-color: var(--color-accent) !important;
+  outline: none !important;
+}
+.btn-close {
+  background-size: 0.8rem;
+  transition: transform 0.15s;
+}
+.btn-close:hover {
+  transform: rotate(90deg);
+}
 </style>

@@ -79,6 +79,7 @@ onMounted(async () => {
   try {
     const opts = await getFormOptions()
     patientIds.value = ['（全部病患）', ...(opts.patientIds || [])]
+    selectedId.value = '（全部病患）'
   } catch (e) {
     showToast('載入病患清單失敗', 'danger')
   }
@@ -102,6 +103,7 @@ async function loadPreview() {
     const data = await getExportData(params)
     previewRows.value = data.rows || []
     previewLoaded.value = true
+    showToast(`預覽成功，共載入 ${previewRows.value.length} 筆資料`)
   } catch (e) {
     showToast('預覽失敗：' + e.message, 'danger')
   } finally {
@@ -138,181 +140,231 @@ function downloadCsv() {
   a.download = `spine_questionnaire_${date}.csv`
   a.click()
   URL.revokeObjectURL(url)
-  showToast('CSV 已下載 ✅')
+  showToast('CSV 下載成功 ✅')
 }
 </script>
 
 <template>
-  <div style="background:#f0f4f8;min-height:100vh;font-family:'Segoe UI',sans-serif">
+  <div style="background: var(--color-bg-base); min-height: 100vh; font-family: var(--font-family);">
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-dark px-3 py-2" style="background:linear-gradient(135deg,#1a73e8,#0d47a1)">
-      <span class="navbar-brand fw-bold"><i class="bi bi-download me-2"></i>資料匯出</span>
-      <div class="d-flex gap-2">
-        <RouterLink to="/"          class="btn btn-outline-light btn-sm"><i class="bi bi-house me-1"></i>後台</RouterLink>
-        <RouterLink to="/analytics" class="btn btn-outline-light btn-sm"><i class="bi bi-bar-chart-line me-1"></i>分析</RouterLink>
-        <RouterLink to="/mcid"      class="btn btn-outline-light btn-sm"><i class="bi bi-graph-up-arrow me-1"></i>MCID</RouterLink>
+    <!-- Navbar / Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark px-4 py-3 shadow-sm border-bottom" style="background: linear-gradient(135deg, var(--color-primary), #063e45);">
+      <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
+        <span class="navbar-brand fw-bold fs-5 d-flex align-items-center">
+          <i class="bi bi-download me-2" aria-hidden="true"></i>資料匯出與預覽
+        </span>
+        <div class="d-flex gap-2 flex-wrap">
+          <span class="text-white-50 small align-self-center me-2 tabular-nums">臨床管理端</span>
+          <RouterLink to="/" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-house" aria-hidden="true"></i>儀表板
+          </RouterLink>
+          <RouterLink to="/form" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-person-plus" aria-hidden="true"></i>手術登錄
+          </RouterLink>
+          <RouterLink to="/analytics" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-bar-chart-line" aria-hidden="true"></i>分析
+          </RouterLink>
+          <RouterLink to="/mcid" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>MCID
+          </RouterLink>
+          <RouterLink to="/export" class="btn btn-light btn-sm text-dark px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-download" aria-hidden="true"></i>匯出
+          </RouterLink>
+          <RouterLink to="/clinic" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>回診登記
+          </RouterLink>
+          <RouterLink to="/demo" class="btn btn-outline-warning btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-play-circle" aria-hidden="true"></i>Demo演示
+          </RouterLink>
+        </div>
       </div>
     </nav>
 
-    <div class="container-fluid py-4 px-4" style="max-width:1100px">
-
+    <div class="container-fluid py-4 px-4">
       <div class="row g-4">
 
         <!-- 左欄：篩選條件 -->
-        <div class="col-12 col-lg-4">
-          <div class="card border-0 rounded-3 shadow-sm">
-            <div class="card-body p-4">
-              <div class="fw-bold mb-3" style="color:#1a73e8;border-bottom:2px solid #1a73e8;padding-bottom:6px">
-                <i class="bi bi-funnel me-1"></i>篩選條件
-              </div>
+        <div class="col-12 col-xl-4">
+          <div class="clinical-card bg-white p-4 h-100">
+            <h2 class="fs-6 fw-bold mb-4 pb-2 border-bottom d-flex align-items-center gap-2" style="color: var(--color-primary);">
+              <i class="bi bi-funnel text-teal" aria-hidden="true"></i>篩選匯出條件
+            </h2>
 
-              <!-- 病患選擇 -->
-              <div class="mb-3">
-                <label class="form-label small fw-bold text-muted">病患</label>
-                <select v-model="selectedId" class="form-select form-select-sm">
-                  <option v-for="id in patientIds" :key="id" :value="id">{{ id }}</option>
-                </select>
-              </div>
+            <!-- 病患選擇 -->
+            <div class="mb-4">
+              <label for="patient-select" class="form-label small fw-bold text-muted d-flex align-items-center gap-1">
+                <i class="bi bi-person text-teal" aria-hidden="true"></i> 指定個案編號
+              </label>
+              <select id="patient-select" v-model="selectedId" class="form-select focus-ring" aria-label="選擇病患研究編號">
+                <option v-for="id in patientIds" :key="id" :value="id">{{ id }}</option>
+              </select>
+            </div>
 
-              <!-- 時間點 -->
-              <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                  <label class="form-label small fw-bold text-muted mb-0">術後時間點</label>
-                  <button class="btn btn-link btn-sm p-0 text-decoration-none"
-                          style="font-size:.75rem" @click="toggleAllDays">
-                    {{ selectedDays.length === PUSH_DAYS.length ? '取消全選' : '全選' }}
-                  </button>
+            <!-- 時間點 -->
+            <div class="mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label small fw-bold text-muted mb-0 d-flex align-items-center gap-1">
+                  <i class="bi bi-calendar-event text-teal" aria-hidden="true"></i> 術後時間點 (天數)
+                </label>
+                <button class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold focus-ring"
+                        style="font-size: .8rem; color: var(--color-accent);" @click="toggleAllDays">
+                  {{ selectedDays.length === PUSH_DAYS.length ? '清除全選' : '快速全選' }}
+                </button>
+              </div>
+              
+              <div class="d-flex flex-wrap gap-1.5">
+                <button v-for="d in PUSH_DAYS" :key="d"
+                        type="button"
+                        class="btn btn-sm px-2.5 py-1.5 transition-btn rounded-pill text-nowrap tabular-nums"
+                        :class="selectedDays.includes(d) ? 'btn-teal text-white shadow-sm' : 'btn-light text-secondary border'"
+                        style="font-size: .75rem; min-width: 44px;"
+                        @click="toggleDay(d)">
+                  D{{ d }}
+                </button>
+              </div>
+              <div class="text-muted mt-2 small font-monospace">
+                {{ selectedDays.length === 0 ? '預設包含所有追蹤時間點' : `已選擇 ${selectedDays.length} 個追蹤時間點` }}
+              </div>
+            </div>
+
+            <!-- 匯出欄位 -->
+            <div class="mb-4">
+              <label class="form-label small fw-bold text-muted mb-2.5 d-flex align-items-center gap-1">
+                <i class="bi bi-check-all text-teal" aria-hidden="true"></i> 選擇匯出欄位
+              </label>
+              <div class="d-flex flex-column gap-2.5 p-3 rounded-3" style="background: #f8fafc; border: 1px solid var(--color-border);">
+                <div class="form-check">
+                  <input class="form-check-input focus-ring" type="checkbox" id="f-vas" v-model="fields.vas">
+                  <label class="form-check-label small fw-medium" for="f-vas">
+                    VAS 疼痛分數
+                    <span class="text-muted d-block small" style="font-size: 0.72rem;">術前/術後（背部與腿部疼痛分數）</span>
+                  </label>
                 </div>
-                <div class="d-flex flex-wrap gap-1">
-                  <button v-for="d in PUSH_DAYS" :key="d"
-                          class="btn btn-sm"
-                          :class="selectedDays.includes(d) ? 'btn-primary' : 'btn-outline-secondary'"
-                          style="font-size:.72rem;padding:2px 8px;min-width:36px"
-                          @click="toggleDay(d)">
-                    D{{ d }}
-                  </button>
+                <div class="form-check">
+                  <input class="form-check-input focus-ring" type="checkbox" id="f-odi" v-model="fields.odi">
+                  <label class="form-check-label small fw-medium" for="f-odi">
+                    ODI 功能障礙指數
+                    <span class="text-muted d-block small" style="font-size: 0.72rem;">術前/術後（百分比總分）</span>
+                  </label>
                 </div>
-                <div class="text-muted mt-1" style="font-size:.72rem">
-                  {{ selectedDays.length === 0 ? '全部時間點' : '已選 ' + selectedDays.length + ' 個時間點' }}
+                <div class="form-check">
+                  <input class="form-check-input focus-ring" type="checkbox" id="f-odiDetail" v-model="fields.odiDetail">
+                  <label class="form-check-label small fw-medium" for="f-odiDetail">
+                    ODI 各題原始明細
+                    <span class="text-muted d-block small" style="font-size: 0.72rem;">Q1–Q10 詳細選項值與文字描述</span>
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input focus-ring" type="checkbox" id="f-pass" v-model="fields.pass">
+                  <label class="form-check-label small fw-medium" for="f-pass">
+                    PASS 滿意度與 PGIC
+                    <span class="text-muted d-block small" style="font-size: 0.72rem;">術後滿意狀態與患者自我整體改善感受</span>
+                  </label>
                 </div>
               </div>
+            </div>
 
-              <!-- 匯出欄位 -->
-              <div class="mb-4">
-                <label class="form-label small fw-bold text-muted">匯出欄位</label>
-                <div class="d-flex flex-column gap-2">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="f-vas" v-model="fields.vas">
-                    <label class="form-check-label small" for="f-vas">
-                      VAS 疼痛評分
-                      <span class="text-muted">（術前 + 術後背痛/腿痛）</span>
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="f-odi" v-model="fields.odi">
-                    <label class="form-check-label small" for="f-odi">
-                      ODI 總分
-                      <span class="text-muted">（術前 + 術後百分比）</span>
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="f-odiDetail" v-model="fields.odiDetail">
-                    <label class="form-check-label small" for="f-odiDetail">
-                      ODI 各題明細
-                      <span class="text-muted">（Q1–Q10 分數與選項）</span>
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="f-pass" v-model="fields.pass">
-                    <label class="form-check-label small" for="f-pass">
-                      PASS / PGIC
-                      <span class="text-muted">（可接受度 + 整體改善）</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 操作按鈕 -->
-              <button class="btn btn-outline-primary w-100 mb-2"
+            <!-- 操作按鈕 -->
+            <div class="d-flex flex-column gap-2">
+              <button class="btn btn-teal w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm transition-btn focus-ring"
                       :disabled="loading" @click="loadPreview">
-                <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-                <i v-else class="bi bi-eye me-1"></i>
-                預覽資料
+                <span v-if="loading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <i v-else class="bi bi-eye" aria-hidden="true"></i>
+                預覽臨床資料
               </button>
-              <button class="btn btn-success w-100"
+              <button class="btn btn-success w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm transition-btn focus-ring"
                       :disabled="!previewLoaded || previewRows.length === 0"
                       @click="downloadCsv">
-                <i class="bi bi-file-earmark-spreadsheet me-1"></i>
-                下載 CSV（{{ previewLoaded ? previewRows.length + ' 筆' : '—' }}）
+                <i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i>
+                下載 CSV 檔案
+                <span v-if="previewLoaded" class="badge bg-white text-success font-monospace" style="font-size: 0.75rem;">{{ previewRows.length }} 筆</span>
               </button>
             </div>
           </div>
         </div>
 
         <!-- 右欄：預覽表格 -->
-        <div class="col-12 col-lg-8">
-          <div class="card border-0 rounded-3 shadow-sm h-100">
-            <div class="card-body p-4">
-              <div class="fw-bold mb-3" style="color:#1a73e8;border-bottom:2px solid #1a73e8;padding-bottom:6px">
-                <i class="bi bi-table me-1"></i>資料預覽
-                <span v-if="previewLoaded" class="ms-2 badge bg-primary">{{ previewRows.length }} 筆</span>
-              </div>
+        <div class="col-12 col-xl-8">
+          <div class="clinical-card bg-white p-4 h-100 d-flex flex-column" style="min-height: 500px;">
+            <h2 class="fs-6 fw-bold mb-4 pb-2 border-bottom d-flex align-items-center justify-content-between" style="color: var(--color-primary);">
+              <span class="d-flex align-items-center gap-2">
+                <i class="bi bi-table text-teal" aria-hidden="true"></i>資料預覽視窗
+              </span>
+              <span v-if="previewLoaded" class="badge rounded-pill font-monospace" style="background: var(--color-primary-light); color: var(--color-primary);">
+                共 {{ previewRows.length }} 筆符合資料
+              </span>
+            </h2>
 
-              <!-- 未預覽提示 -->
-              <div v-if="!previewLoaded && !loading"
-                   class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
-                <i class="bi bi-arrow-left-circle fs-2 mb-2"></i>
-                設定條件後點「預覽資料」
-              </div>
-
-              <!-- Loading -->
-              <div v-if="loading" class="d-flex align-items-center justify-content-center py-5">
-                <div class="spinner-border text-primary me-2"></div>
-                <span class="text-muted">載入中…</span>
-              </div>
-
-              <!-- 無資料 -->
-              <div v-else-if="previewLoaded && previewRows.length === 0"
-                   class="text-center text-muted py-5">
-                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                符合條件的資料為空
-              </div>
-
-              <!-- 預覽表格 -->
-              <div v-else-if="previewLoaded" class="table-responsive" style="max-height:560px;overflow-y:auto">
-                <table class="table table-sm table-hover align-middle mb-0" style="font-size:.8rem;white-space:nowrap">
-                  <thead class="table-light sticky-top">
-                    <tr>
-                      <th v-for="h in previewHeaders" :key="h">{{ h }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(r, i) in previewRows" :key="i">
-                      <td v-for="(v, j) in rowToArray(r)" :key="j">
-                        <span v-if="j === 4 || j === 5" class="text-muted">{{ v }}</span>
-                        <span v-else>{{ v }}</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
+            <!-- 未預覽提示 -->
+            <div v-if="!previewLoaded && !loading"
+                 class="d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted py-5">
+              <i class="bi bi-arrow-left-circle fs-2 text-teal-soft mb-3" aria-hidden="true" style="color: #cbd5e1;"></i>
+              <div class="fw-semibold fs-6 mb-1 text-secondary">尚未載入預覽</div>
+              <div class="small">請於左側設定篩選與欄位條件後，點選「預覽臨床資料」按鈕。</div>
             </div>
+
+            <!-- Loading -->
+            <div v-if="loading" class="d-flex flex-column align-items-center justify-content-center flex-grow-1 py-5">
+              <div class="spinner-border text-teal mb-3" style="color: var(--color-accent);" role="status">
+                <span class="visually-hidden">載入中…</span>
+              </div>
+              <span class="text-muted fw-medium">資料庫查詢中，請稍候…</span>
+            </div>
+
+            <!-- 無資料 -->
+            <div v-else-if="previewLoaded && previewRows.length === 0"
+                 class="d-flex flex-column align-items-center justify-content-center flex-grow-1 text-muted py-5">
+              <i class="bi bi-inbox fs-2 text-warning mb-3" aria-hidden="true"></i>
+              <div class="fw-semibold fs-6 mb-1 text-secondary">無符合條件資料</div>
+              <div class="small">查無符合所選病患編號、天數的術後問卷填寫紀錄。</div>
+            </div>
+
+            <!-- 預覽表格 -->
+            <div v-else-if="previewLoaded" class="table-responsive flex-grow-1" style="max-height: 600px; overflow-y: auto;">
+              <table class="clinical-table mb-0 text-nowrap" style="font-size: .82rem;">
+                <thead class="sticky-top bg-white border-bottom">
+                  <tr>
+                    <th scope="col" v-for="h in previewHeaders" :key="h" class="py-2.5 px-3">{{ h }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(r, i) in previewRows" :key="i">
+                    <td v-for="(v, j) in rowToArray(r)" :key="j" class="py-2 px-3">
+                      <!-- 依照列索引格式化樣式 -->
+                      <span v-if="j === 0" class="tabular-nums font-semibold"><strong>{{ v }}</strong></span>
+                      <span v-else-if="j === 1 || j === 2 || j === 5 || j === 6" class="tabular-nums text-muted">{{ v }}</span>
+                      <span v-else-if="j >= 8 && j <= 13" class="tabular-nums text-center fw-semibold text-teal">{{ v }}</span>
+                      <span v-else>{{ v }}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
           </div>
         </div>
 
       </div>
     </div>
 
-    <!-- Toast -->
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9000">
+    <!-- Toast container -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9000;">
       <Transition name="toast-fade">
         <div v-if="toast.show"
-             :class="`toast show align-items-center text-white border-0 bg-${toast.type}`">
+             class="toast show align-items-center text-white border-0 shadow-lg px-2 py-1"
+             :class="`bg-${toast.type === 'danger' ? 'danger' : toast.type === 'warning' ? 'warning' : 'success'}`"
+             role="alert"
+             aria-live="assertive"
+             aria-atomic="true">
           <div class="d-flex">
-            <div class="toast-body">{{ toast.msg }}</div>
-            <button class="btn-close btn-close-white me-2 m-auto" @click="toast.show = false"></button>
+            <div class="toast-body fw-medium d-flex align-items-center gap-2">
+              <i v-if="toast.type === 'success'" class="bi bi-check-circle-fill" aria-hidden="true"></i>
+              <i v-else-if="toast.type === 'warning'" class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+              <i v-else class="bi bi-x-circle-fill" aria-hidden="true"></i>
+              {{ toast.msg }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto shadow-none"
+                    @click="toast.show = false" aria-label="關閉通知"></button>
           </div>
         </div>
       </Transition>
@@ -322,6 +374,46 @@ function downloadCsv() {
 </template>
 
 <style scoped>
-.toast-fade-enter-active, .toast-fade-leave-active { transition: opacity .3s; }
-.toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; }
+.transition-btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-teal {
+  background-color: var(--color-primary);
+  color: #fff;
+  border: 1px solid var(--color-primary);
+}
+.btn-teal:hover {
+  background-color: #063e45;
+  color: #fff;
+}
+.toast-fade-enter-active, .toast-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast-fade-enter-from, .toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.btn-close {
+  background-size: 0.8rem;
+  transition: transform 0.15s;
+}
+.btn-close:hover {
+  transform: rotate(90deg);
+}
+
+/* Custom scrollbars inside preview window */
+.table-responsive::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.table-responsive::-webkit-scrollbar-track {
+  background: transparent;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
 </style>

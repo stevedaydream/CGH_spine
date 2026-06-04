@@ -17,3 +17,8 @@ vue-app/dist/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ── Agents / Skills ────────────────────────────────────
+.agents/
+.claude/
+skills-lock.json

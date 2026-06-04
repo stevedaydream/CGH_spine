@@ -151,7 +151,7 @@ function lineStatusInfo(s) {
 }
 
 function pctColor(pct) {
-  return pct >= 80 ? '#34a853' : pct >= 50 ? '#fbbc04' : '#ea4335'
+  return pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444'
 }
 
 // ── 病歷號行內編輯 ────────────────────────────────────
@@ -196,134 +196,165 @@ onMounted(load)
 </script>
 
 <template>
-  <div style="background:#f0f4f8; min-height:100vh; font-family:'Segoe UI',sans-serif">
+  <div style="background: var(--color-bg-base); min-height: 100vh; font-family: var(--font-family);">
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-dark px-3 py-2" style="background:linear-gradient(135deg,#1a73e8,#0d47a1)">
-      <span class="navbar-brand fw-bold">
-        <i class="bi bi-hospital me-2"></i>脊椎追蹤系統
-      </span>
-      <div class="d-flex gap-2">
-        <span class="text-white-50 small align-self-center">醫護後台</span>
-        <RouterLink to="/form"      class="btn btn-outline-light btn-sm"><i class="bi bi-person-plus me-1"></i>手術登錄</RouterLink>
-        <RouterLink to="/analytics" class="btn btn-outline-light btn-sm"><i class="bi bi-bar-chart-line me-1"></i>分析</RouterLink>
-        <RouterLink to="/mcid"      class="btn btn-outline-light btn-sm"><i class="bi bi-graph-up-arrow me-1"></i>MCID</RouterLink>
-        <RouterLink to="/export"     class="btn btn-outline-light btn-sm"><i class="bi bi-download me-1"></i>匯出</RouterLink>
-        <div class="sys-menu">
-          <RouterLink to="/bot-management" class="btn btn-outline-light btn-sm">
-            <i class="bi bi-gear me-1"></i>系統設定
+    <!-- Navbar / Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark px-4 py-3 shadow-sm border-bottom" style="background: linear-gradient(135deg, var(--color-primary), #063e45);">
+      <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
+        <span class="navbar-brand fw-bold fs-5 d-flex align-items-center">
+          <i class="bi bi-hospital me-2" aria-hidden="true"></i>脊椎手術智慧追蹤系統
+        </span>
+        <div class="d-flex gap-2 flex-wrap">
+          <span class="text-white-50 small align-self-center me-2 tabular-nums">臨床管理端</span>
+          <RouterLink to="/" class="btn btn-light btn-sm text-dark px-3 py-1.5 fw-medium d-flex align-items-center gap-1" aria-current="page">
+            <i class="bi bi-house" aria-hidden="true"></i>儀表板
           </RouterLink>
-          <div class="sys-menu-dropdown">
-            <div><i class="bi bi-robot me-1"></i>LINE Bot 回覆設定</div>
-            <div><i class="bi bi-journal-medical me-1"></i>衛教 QA 管理</div>
-            <div><i class="bi bi-box-seam me-1"></i>耗材管理</div>
+          <RouterLink to="/form" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-person-plus" aria-hidden="true"></i>手術登錄
+          </RouterLink>
+          <RouterLink to="/analytics" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-bar-chart-line" aria-hidden="true"></i>分析
+          </RouterLink>
+          <RouterLink to="/mcid" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>MCID
+          </RouterLink>
+          <RouterLink to="/export" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-download" aria-hidden="true"></i>匯出
+          </RouterLink>
+          <RouterLink to="/irb" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-shield-check" aria-hidden="true"></i>IRB表單
+          </RouterLink>
+          <div class="sys-menu position-relative">
+            <RouterLink to="/bot-management" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+              <i class="bi bi-gear" aria-hidden="true"></i>系統設定
+            </RouterLink>
+            <div class="sys-menu-dropdown shadow-lg border">
+              <div class="dropdown-item"><i class="bi bi-robot me-2" aria-hidden="true"></i>LINE Bot 回覆設定</div>
+              <div class="dropdown-item"><i class="bi bi-journal-medical me-2" aria-hidden="true"></i>衛教 QA 管理</div>
+              <div class="dropdown-item"><i class="bi bi-box-seam me-2" aria-hidden="true"></i>耗材管理</div>
+            </div>
           </div>
+          <RouterLink to="/clinic" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
+            <i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>回診登記
+          </RouterLink>
+          <button v-if="lineQrUrl" class="btn btn-success btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1"
+                  @click="showQr = !showQr" aria-expanded="showQr" aria-controls="qrPanel">
+            <i class="bi bi-qr-code" aria-hidden="true"></i>LINE QR
+          </button>
         </div>
-        <RouterLink to="/clinic"         class="btn btn-outline-light btn-sm"><i class="bi bi-clipboard2-pulse me-1"></i>回診登記</RouterLink>
-        <button v-if="lineQrUrl" class="btn btn-success btn-sm"
-                @click="showQr = !showQr">
-          <i class="bi bi-qr-code me-1"></i>LINE QR
-        </button>
       </div>
     </nav>
 
-    <!-- LINE QR 展示卡（全寬橫幅，給病患掃）-->
+    <!-- LINE QR 展示卡 -->
     <Transition name="slide-down">
-      <div v-if="showQr && lineQrUrl"
-           style="background:linear-gradient(135deg,#00B900,#00d400);padding:20px 0">
+      <div v-if="showQr && lineQrUrl" id="qrPanel"
+           style="background: linear-gradient(135deg, #10b981, #059669); padding: 24px 0;" class="shadow-inner">
         <div class="d-flex flex-column align-items-center gap-2">
           <div class="text-white fw-bold fs-5">加入 LINE Bot，開始術後追蹤</div>
-          <a :href="lineAddUrl" target="_blank">
-            <img :src="lineQrUrl" alt="LINE QR Code"
-                 style="width:180px;height:180px;border-radius:12px;border:4px solid #fff;box-shadow:0 4px 20px rgba(0,0,0,.2)">
+          <a :href="lineAddUrl" target="_blank" aria-label="打開 LINE 機器人連結">
+            <img :src="lineQrUrl" alt="LINE 官方帳號 QR 碼"
+                 style="width: 170px; height: 170px; border-radius: 16px; border: 4px solid #fff; box-shadow: 0 10px 25px -5px rgba(0,0,0,.3)">
           </a>
-          <div class="text-white-50 small">掃描後加好友，輸入護理師提供的 6 位綁定碼</div>
-          <button class="btn btn-outline-light btn-sm mt-1" @click="showQr = false">
-            <i class="bi bi-x me-1"></i>收起
+          <div class="text-white-50 small mt-1">掃描後加好友，輸入護理師提供的 6 位綁定碼</div>
+          <button class="btn btn-outline-light btn-sm mt-2 px-3" @click="showQr = false" aria-label="收起 QR 碼區塊">
+            <i class="bi bi-x-lg me-1" aria-hidden="true"></i>收起
           </button>
         </div>
       </div>
     </Transition>
 
-    <!-- Loading -->
+    <!-- Loading overlay -->
     <div v-if="loading"
          class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-         style="background:rgba(255,255,255,.7);z-index:9999">
+         style="background: rgba(248, 250, 252, 0.85); z-index: 9999;" aria-live="polite">
       <div class="text-center">
-        <div class="spinner-border text-primary mb-2"></div>
-        <div class="text-muted small">載入資料中…</div>
+        <div class="spinner-border text-teal mb-3" style="width: 3rem; height: 3rem; color: var(--color-accent);" role="status">
+          <span class="visually-hidden">載入中…</span>
+        </div>
+        <div class="text-muted fw-medium">載入追蹤資料中…</div>
       </div>
     </div>
 
-    <div v-else class="container-fluid py-4 px-4">
+    <div v-else class="container-fluid py-4 px-4 max-width-xl">
 
       <!-- 統計卡片 -->
       <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
-          <div class="card p-3" style="border:none;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-left:4px solid #1a73e8">
-            <div class="text-muted small mb-1"><i class="bi bi-people me-1"></i>總病患數</div>
-            <div class="fs-3 fw-bold text-primary">{{ summary.totalPatients }}</div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="card p-3" style="border:none;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-left:4px solid #34a853">
-            <div class="text-muted small mb-1"><i class="bi bi-activity me-1"></i>追蹤中</div>
-            <div class="fs-3 fw-bold text-success">{{ summary.activePatients }}</div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="card p-3" style="border:none;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-left:4px solid #fbbc04">
-            <div class="text-muted small mb-1"><i class="bi bi-percent me-1"></i>平均完整度</div>
-            <div class="fs-3 fw-bold text-warning">{{ summary.avgCompleteness }}%</div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="card p-3" style="border:none;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-left:4px solid #ea4335">
-            <div class="text-muted small mb-1"><i class="bi bi-clock-history me-1"></i>待確認</div>
-            <div class="fs-3 fw-bold" :class="summary.pendingReview > 0 ? 'text-danger' : 'text-secondary'">
-              {{ summary.pendingReview }}
+          <div class="clinical-card p-3 d-flex align-items-center justify-content-between" style="border-left: 4px solid var(--color-primary);">
+            <div>
+              <div class="text-muted small mb-1"><i class="bi bi-people me-1" aria-hidden="true"></i>總病患數</div>
+              <div class="fs-3 fw-bold text-teal tabular-nums" style="color: var(--color-primary);">{{ summary.totalPatients }}</div>
             </div>
+            <i class="bi bi-person-fill-check text-muted opacity-50 fs-2" aria-hidden="true"></i>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="clinical-card p-3 d-flex align-items-center justify-content-between" style="border-left: 4px solid var(--color-accent);">
+            <div>
+              <div class="text-muted small mb-1"><i class="bi bi-activity me-1" aria-hidden="true"></i>追蹤中</div>
+              <div class="fs-3 fw-bold text-success tabular-nums">{{ summary.activePatients }}</div>
+            </div>
+            <i class="bi bi-heart-pulse-fill text-muted opacity-50 fs-2" aria-hidden="true"></i>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="clinical-card p-3 d-flex align-items-center justify-content-between" style="border-left: 4px solid #f59e0b;">
+            <div>
+              <div class="text-muted small mb-1"><i class="bi bi-percent me-1" aria-hidden="true"></i>平均完整度</div>
+              <div class="fs-3 fw-bold text-warning tabular-nums">{{ summary.avgCompleteness }}%</div>
+            </div>
+            <i class="bi bi-check-all text-muted opacity-50 fs-2" aria-hidden="true"></i>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="clinical-card p-3 d-flex align-items-center justify-content-between" style="border-left: 4px solid #ef4444;">
+            <div>
+              <div class="text-muted small mb-1"><i class="bi bi-clock-history me-1" aria-hidden="true"></i>待確認</div>
+              <div class="fs-3 fw-bold tabular-nums" :class="summary.pendingReview > 0 ? 'text-danger' : 'text-secondary'">
+                {{ summary.pendingReview }}
+              </div>
+            </div>
+            <i class="bi bi-exclamation-circle-fill text-muted opacity-50 fs-2" aria-hidden="true"></i>
           </div>
         </div>
       </div>
 
       <!-- AI 待確認區 -->
-      <div class="card mb-4" style="border:none;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div style="font-size:1rem;font-weight:700;color:#1a73e8;border-bottom:2px solid #1a73e8;padding-bottom:6px">
-              AI 暫存待確認區
-            </div>
-            <button class="btn btn-sm btn-outline-secondary" @click="load">
-              <i class="bi bi-arrow-clockwise me-1"></i>重新整理
-            </button>
+      <div class="clinical-card mb-4 overflow-hidden">
+        <div class="card-header-ai px-4 py-3 d-flex justify-content-between align-items-center border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge-ai-indicator" aria-hidden="true">AI</span>
+            <h2 class="fs-6 m-0 fw-bold" style="color: var(--color-primary);">AI 暫存待確認區</h2>
           </div>
-
+          <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 px-3 py-1.5 border-dashed" @click="load" aria-label="重新整理待確認列表">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>重新整理
+          </button>
+        </div>
+        <div class="p-0">
           <!-- 無待確認 -->
-          <div v-if="pending.length === 0" class="text-center text-muted py-4">
-            <i class="bi bi-check-circle fs-2 text-success d-block mb-2"></i>
-            目前無待確認記錄
+          <div v-if="pending.length === 0" class="text-center text-muted py-5">
+            <i class="bi bi-check-circle-fill fs-2 text-success d-block mb-3" aria-hidden="true"></i>
+            <span class="fw-medium">目前無待確認記錄，所有資料已核准</span>
           </div>
 
           <!-- 待確認表格 -->
           <div v-else class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-light">
+            <table class="clinical-table mb-0">
+              <thead>
                 <tr>
-                  <th>研究編號</th>
-                  <th>原始訊息</th>
-                  <th>AI解讀 背/腿</th>
-                  <th>AI摘要</th>
-                  <th>解析時間</th>
-                  <th>操作</th>
+                  <th scope="col">研究編號</th>
+                  <th scope="col">原始訊息</th>
+                  <th scope="col">AI解讀 背/腿</th>
+                  <th scope="col">AI摘要</th>
+                  <th scope="col">解析時間</th>
+                  <th scope="col" style="text-align: right;">操作</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="r in pending" :key="r.rowIndex">
-                  <td><strong>{{ r.researchId }}</strong></td>
+                  <td class="tabular-nums"><strong>{{ r.researchId }}</strong></td>
                   <td>
-                    <div :title="r.rawMessage"
-                         style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85rem;color:#555">
+                    <div :title="r.rawMessage" class="text-truncate-clinical" style="max-width: 250px;">
                       {{ r.rawMessage }}
                     </div>
                   </td>
@@ -332,21 +363,20 @@ onMounted(load)
                     <span class="text-muted small mx-1">/</span>
                     <span :class="vasClass(r.aiVasLeg)">{{ r.aiVasLeg !== '' ? r.aiVasLeg : '?' }}</span>
                   </td>
-                  <td class="small">{{ r.aiSummary }}</td>
-                  <td class="small text-muted">{{ r.aiParsedAt }}</td>
-                  <td>
-                    <button class="btn btn-success btn-sm me-1"
+                  <td><div class="text-truncate-clinical" style="max-width: 250px;">{{ r.aiSummary }}</div></td>
+                  <td class="tabular-nums text-muted small">{{ r.aiParsedAt }}</td>
+                  <td style="text-align: right; white-space: nowrap;">
+                    <button class="btn btn-success btn-sm me-2 px-3"
                             :disabled="approveLoadingRows.has(r.rowIndex)"
                             @click="doApprove(r.rowIndex)"
-                            style="font-size:.78rem;padding:3px 10px">
-                      <span v-if="approveLoadingRows.has(r.rowIndex)"
-                            class="spinner-border spinner-border-sm"></span>
-                      <template v-else><i class="bi bi-check-lg"></i> 核准</template>
+                            aria-label="核准此 AI 記錄">
+                      <span v-if="approveLoadingRows.has(r.rowIndex)" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                      <template v-else><i class="bi bi-check-lg" aria-hidden="true"></i> 核准</template>
                     </button>
-                    <button class="btn btn-outline-danger btn-sm"
+                    <button class="btn btn-outline-danger btn-sm px-3"
                             @click="doReject(r.rowIndex)"
-                            style="font-size:.78rem;padding:3px 10px">
-                      <i class="bi bi-x-lg"></i> 拒絕
+                            aria-label="拒絕並廢棄此 AI 記錄">
+                      <i class="bi bi-x-lg" aria-hidden="true"></i> 拒絕
                     </button>
                   </td>
                 </tr>
@@ -357,100 +387,101 @@ onMounted(load)
       </div>
 
       <!-- 病患追蹤列表 -->
-      <div class="card" style="border:none;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-        <div class="card-body">
-          <div style="font-size:1rem;font-weight:700;color:#1a73e8;border-bottom:2px solid #1a73e8;padding-bottom:6px;margin-bottom:16px">
-            病患追蹤狀態
-          </div>
+      <div class="clinical-card overflow-hidden">
+        <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-center">
+          <h2 class="fs-6 m-0 fw-bold" style="color: var(--color-primary);">病患術後追蹤狀態</h2>
+        </div>
+        <div class="p-0">
           <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-light">
+            <table class="clinical-table mb-0">
+              <thead>
                 <tr>
-                  <th>研究編號</th>
-                  <th>病歷號</th>
-                  <th>手術</th>
-                  <th>Cage</th>
-                  <th>術後天數</th>
-                  <th>Line 狀態</th>
-                  <th>最後VAS 背/腿</th>
-                  <th>追蹤完整度</th>
-                  <th></th>
+                  <th scope="col">研究編號</th>
+                  <th scope="col">病歷號</th>
+                  <th scope="col">手術項目</th>
+                  <th scope="col">Cage 代碼</th>
+                  <th scope="col">術後時程</th>
+                  <th scope="col">LINE 狀態</th>
+                  <th scope="col">最後 VAS 背/腿</th>
+                  <th scope="col">問卷填寫完整度</th>
+                  <th scope="col" style="text-align: right;">操作</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="patients.length === 0">
-                  <td colspan="9" class="text-center text-muted py-3">尚無病患資料</td>
+                  <td colspan="9" class="text-center text-muted py-5">尚無個案病患資料</td>
                 </tr>
                 <tr v-for="p in patients" :key="p.researchId">
-                  <td>
+                  <td class="tabular-nums">
                     <strong>{{ p.researchId }}</strong><br>
                     <span class="text-muted small">{{ p.opDate }}</span>
                   </td>
                   <!-- 病歷號行內編輯 -->
-                  <td style="min-width:110px">
+                  <td style="min-width: 140px;">
                     <template v-if="editingChart && editingChart.researchId === p.researchId">
                       <div class="d-flex gap-1 align-items-center">
                         <input v-model="editingChart.value" type="text"
-                               class="form-control form-control-sm"
-                               style="width:80px;font-size:.78rem"
+                               class="form-control form-control-sm border-teal focus-ring"
+                               style="width: 90px; font-size: .8rem;"
+                               name="chartNumber"
+                               aria-label="病歷號輸入框"
+                               autocomplete="off"
                                @keyup.enter="saveChart"
                                @keyup.escape="cancelEditChart"
                                v-focus>
-                        <button class="btn btn-success btn-sm p-0 px-1"
+                        <button class="btn btn-success btn-sm p-1 d-flex align-items-center"
                                 :disabled="savingChart" @click="saveChart"
-                                title="儲存">
-                          <span v-if="savingChart" class="spinner-border spinner-border-sm"></span>
-                          <i v-else class="bi bi-check"></i>
+                                aria-label="儲存病歷號" title="儲存">
+                          <span v-if="savingChart" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                          <i v-else class="bi bi-check fs-6" aria-hidden="true"></i>
                         </button>
-                        <button class="btn btn-outline-secondary btn-sm p-0 px-1"
-                                @click="cancelEditChart" title="取消">
-                          <i class="bi bi-x"></i>
+                        <button class="btn btn-outline-secondary btn-sm p-1 d-flex align-items-center"
+                                @click="cancelEditChart" aria-label="取消編輯" title="取消">
+                          <i class="bi bi-x fs-6" aria-hidden="true"></i>
                         </button>
                       </div>
                     </template>
                     <template v-else>
-                      <span class="small me-1">{{ p.chartNumber || '—' }}</span>
-                      <button class="btn btn-link btn-sm p-0 text-muted"
-                              style="font-size:.72rem"
-                              @click="startEditChart(p)" title="編輯病歷號">
-                        <i class="bi bi-pencil"></i>
+                      <span class="small me-2 font-monospace">{{ p.chartNumber || '—' }}</span>
+                      <button class="btn btn-link btn-edit-chart p-1 text-muted"
+                              @click="startEditChart(p)" aria-label="編輯病歷號" title="編輯病歷號">
+                        <i class="bi bi-pencil" aria-hidden="true"></i>
                       </button>
                     </template>
                   </td>
-                  <td class="small">{{ p.opName || '-' }}</td>
-                  <td class="small">{{ p.cageCode || '-' }}</td>
-                  <td>
-                    <span class="badge bg-light text-dark border">D+{{ p.daysPostOp }}</span>
+                  <td><div class="text-truncate-clinical" style="max-width: 120px;" :title="p.opName">{{ p.opName || '—' }}</div></td>
+                  <td class="tabular-nums"><span class="badge bg-light text-secondary border font-monospace">{{ p.cageCode || '—' }}</span></td>
+                  <td class="tabular-nums">
+                    <span class="badge bg-soft-teal text-teal border border-teal-light px-2.5 py-1">D+{{ p.daysPostOp }}</span>
                   </td>
                   <td>
-                    <span :class="`badge bg-${lineStatusInfo(p.lineStatus)[0]}`">
-                      {{ lineStatusInfo(p.lineStatus)[1] }}
-                    </span>
+                    <span class="dot-indicator" :class="`dot-${lineStatusInfo(p.lineStatus)[0]}`"></span>
+                    <span class="small fw-medium">{{ lineStatusInfo(p.lineStatus)[1] }}</span>
                   </td>
-                  <td>
+                  <td class="tabular-nums">
                     <span :class="vasClass(p.lastVasBack)">{{ p.lastVasBack }}</span>
                     <span class="text-muted mx-1">/</span>
                     <span :class="vasClass(p.lastVasLeg)">{{ p.lastVasLeg }}</span>
                     <span v-if="p.lastDays !== '-'" class="text-muted ms-1 small">D{{ p.lastDays }}</span>
                   </td>
-                  <td style="min-width:120px">
-                    <div class="d-flex align-items-center gap-2">
-                      <div style="height:6px;border-radius:3px;background:#e9ecef;flex-grow:1">
-                        <div :style="`height:100%;border-radius:3px;width:${p.pct}%;background:${pctColor(p.pct)};transition:width .4s`"></div>
+                  <td style="min-width: 150px;">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <div class="progress-bar-container">
+                        <div class="progress-bar-fill" :style="`width: ${p.pct}%; background-color: ${pctColor(p.pct)};`"></div>
                       </div>
-                      <span class="small fw-bold" :style="`color:${pctColor(p.pct)}`">{{ p.pct }}%</span>
+                      <span class="small fw-bold tabular-nums" :style="`color: ${pctColor(p.pct)}`">{{ p.pct }}%</span>
                     </div>
-                    <div class="text-muted" style="font-size:.72rem">{{ p.actual }}/{{ p.expected }} 次</div>
+                    <div class="text-muted tabular-nums" style="font-size: .7rem;">已填寫 {{ p.actual }} / 應填寫 {{ p.expected }} 次</div>
                   </td>
-                  <td>
-                    <div class="d-flex gap-1">
-                      <button class="btn btn-outline-primary btn-sm" style="font-size:.78rem;white-space:nowrap"
-                              @click="openDetail(p.researchId)">
-                        <i class="bi bi-journal-text me-1"></i>詳情
+                  <td style="text-align: right; white-space: nowrap;">
+                    <div class="d-flex gap-1 justify-content-end">
+                      <button class="btn btn-outline-primary btn-sm px-3 d-flex align-items-center gap-1"
+                              @click="openDetail(p.researchId)" aria-label="查看此病患詳情">
+                        <i class="bi bi-journal-text" aria-hidden="true"></i>詳情
                       </button>
-                      <button class="btn btn-outline-danger btn-sm" style="font-size:.78rem"
-                              @click="deletePatient(p)" title="刪除個案">
-                        <i class="bi bi-trash"></i>
+                      <button class="btn btn-outline-danger btn-sm p-1.5 d-flex align-items-center"
+                              @click="deletePatient(p)" aria-label="刪除此個案記錄" title="刪除個案">
+                        <i class="bi bi-trash" aria-hidden="true"></i>
                       </button>
                     </div>
                   </td>
@@ -461,160 +492,167 @@ onMounted(load)
         </div>
       </div>
 
-    </div><!-- /container -->
+    </div>
 
     <!-- 病患詳情 Modal -->
     <Teleport to="body">
       <Transition name="modal-fade">
         <div v-if="detailModal"
              class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-             style="background:rgba(0,0,0,.5);z-index:9500"
-             @click.self="detailModal = false">
-          <div class="bg-white rounded-3 shadow-lg d-flex flex-column"
-               style="width:min(96vw,860px);max-height:90vh">
+             style="background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); z-index: 9500;"
+             @click.self="detailModal = false"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="modalTitle">
+          <div class="bg-white rounded-4 shadow-2xl d-flex flex-column border border-light overflow-hidden"
+               style="width: min(96vw, 920px); max-height: 90vh;">
 
             <!-- Modal Header -->
-            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
-              <div class="fw-bold fs-6" style="color:#1a73e8">
-                <i class="bi bi-journal-text me-2"></i>
-                術後追蹤詳情
-                <span v-if="detailPatient" class="ms-2 text-muted fw-normal small">{{ detailPatient.researchId }}</span>
-              </div>
-              <button class="btn-close" @click="detailModal = false"></button>
+            <div class="d-flex justify-content-between align-items-center px-4 py-3 border-bottom bg-light-surface">
+              <h3 class="fw-bold fs-6 m-0 d-flex align-items-center gap-2" id="modalTitle" style="color: var(--color-primary);">
+                <i class="bi bi-journal-text text-teal" aria-hidden="true"></i>
+                術後恢復追蹤報告
+                <span v-if="detailPatient" class="badge bg-teal-soft text-teal font-monospace ms-2">{{ detailPatient.researchId }}</span>
+              </h3>
+              <button class="btn-close shadow-none" @click="detailModal = false" aria-label="關閉詳情"></button>
             </div>
 
-            <!-- Loading -->
+            <!-- Loading inside modal -->
             <div v-if="detailLoading" class="d-flex align-items-center justify-content-center py-5">
-              <div class="spinner-border text-primary me-2"></div>
-              <span class="text-muted">載入中…</span>
+              <div class="spinner-border text-teal me-2" role="status" style="color: var(--color-accent);">
+                <span class="visually-hidden">載入中…</span>
+              </div>
+              <span class="text-muted fw-medium">載入病患病歷中…</span>
             </div>
 
             <template v-else-if="detailPatient">
               <!-- 病患基本資訊 -->
-              <div class="px-4 py-3 border-bottom" style="background:#f8f9fa">
-                <div class="row g-2 small">
+              <div class="px-4 py-3 border-bottom" style="background-color: var(--color-bg-base);">
+                <div class="row g-3 small">
                   <div class="col-6 col-md-3">
-                    <div class="text-muted">手術日期</div>
-                    <div class="fw-bold">{{ detailPatient.opDate }}</div>
+                    <div class="text-muted mb-0.5">手術日期</div>
+                    <div class="fw-semibold tabular-nums text-dark">{{ detailPatient.opDate }}</div>
                   </div>
                   <div class="col-6 col-md-3">
-                    <div class="text-muted">術式 / 節段</div>
-                    <div class="fw-bold">{{ detailPatient.opName }} {{ detailPatient.opLevels }}</div>
+                    <div class="text-muted mb-0.5">手術術式與節段</div>
+                    <div class="fw-semibold text-dark">{{ detailPatient.opName }} {{ detailPatient.opLevels }}</div>
                   </div>
                   <div class="col-6 col-md-2">
-                    <div class="text-muted">Cage</div>
-                    <div class="fw-bold">{{ detailPatient.cageCode }}</div>
+                    <div class="text-muted mb-0.5">Cage 耗材</div>
+                    <div class="fw-semibold font-monospace text-dark">{{ detailPatient.cageCode || '—' }}</div>
                   </div>
                   <div class="col-6 col-md-2">
-                    <div class="text-muted">術後天數</div>
-                    <div class="fw-bold">D+{{ detailPatient.daysPostOp }}</div>
+                    <div class="text-muted mb-0.5">術後進度</div>
+                    <div class="fw-semibold text-dark tabular-nums">D+{{ detailPatient.daysPostOp }}</div>
                   </div>
-                  <div class="col-6 col-md-2">
-                    <div class="text-muted">術前 VAS 背/腿</div>
-                    <div class="fw-bold">
+                  <div class="col-6 col-md-2 text-md-end">
+                    <div class="text-muted mb-0.5">術前基線 VAS 背/腿</div>
+                    <div class="fw-semibold tabular-nums">
                       <span :class="vasClass(detailPatient.preVasBack)">{{ detailPatient.preVasBack }}</span>
                       <span class="mx-1 text-muted">/</span>
                       <span :class="vasClass(detailPatient.preVasLeg)">{{ detailPatient.preVasLeg }}</span>
                     </div>
                   </div>
                   <div class="col-6 col-md-2">
-                    <div class="text-muted">術前 ODI</div>
-                    <div class="fw-bold">{{ detailPatient.preOdi !== '' ? detailPatient.preOdi + '%' : '-' }}</div>
+                    <div class="text-muted mb-0.5">術前 ODI 評分</div>
+                    <div class="fw-semibold tabular-nums text-dark">{{ detailPatient.preOdi !== '' ? detailPatient.preOdi + '%' : '—' }}</div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="text-muted mb-0.5">骨移植方式</div>
+                    <div class="fw-semibold text-dark">{{ detailPatient.boneGraft || '—' }}</div>
                   </div>
                   <div class="col-6 col-md-2">
-                    <div class="text-muted">骨移植</div>
-                    <div class="fw-bold">{{ detailPatient.boneGraft }}</div>
-                  </div>
-                  <div class="col-6 col-md-2">
-                    <div class="text-muted">主刀</div>
-                    <div class="fw-bold">{{ detailPatient.surgeon }}</div>
+                    <div class="text-muted mb-0.5">主刀醫師</div>
+                    <div class="fw-semibold text-dark">{{ detailPatient.surgeon }}</div>
                   </div>
                 </div>
               </div>
 
               <!-- 追蹤記錄表格 -->
               <div class="overflow-auto flex-grow-1 px-4 py-3">
-                <div v-if="detailRecords.length === 0" class="text-center text-muted py-4">
-                  <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                  尚無追蹤記錄
+                <div v-if="detailRecords.length === 0" class="text-center text-muted py-5">
+                  <i class="bi bi-inbox fs-2 d-block mb-2" aria-hidden="true"></i>
+                  尚無此病患回報之追蹤記錄
                 </div>
-                <table v-else class="table table-sm table-hover align-middle mb-0">
-                  <thead class="table-light sticky-top">
+                <table v-else class="clinical-table mb-0">
+                  <thead class="sticky-top bg-white border-bottom">
                     <tr>
-                      <th>術後天數</th>
-                      <th>日期</th>
-                      <th>背痛</th>
-                      <th>腿痛</th>
-                      <th>ODI</th>
-                      <th>整體改善</th>
-                      <th>可接受</th>
-                      <th>來源</th>
+                      <th scope="col">術後時程</th>
+                      <th scope="col">填寫日期</th>
+                      <th scope="col">VAS背痛</th>
+                      <th scope="col">VAS腿痛</th>
+                      <th scope="col">ODI 功能指數</th>
+                      <th scope="col">整體改善感</th>
+                      <th scope="col">狀態接受</th>
+                      <th scope="col" style="text-align: right;">來源</th>
                     </tr>
                   </thead>
                   <tbody>
                     <!-- 術前基線列 -->
-                    <tr style="background:#fff8e1">
-                      <td><span class="badge bg-secondary">術前</span></td>
-                      <td class="small text-muted">基線</td>
+                    <tr style="background-color: #fefbeb;">
+                      <td class="tabular-nums"><span class="badge bg-warning text-dark px-2">術前</span></td>
+                      <td class="small text-muted font-monospace">Baseline</td>
                       <td><span :class="vasClass(detailPatient.preVasBack)">{{ detailPatient.preVasBack }}</span></td>
                       <td><span :class="vasClass(detailPatient.preVasLeg)">{{ detailPatient.preVasLeg }}</span></td>
-                      <td class="small">{{ detailPatient.preOdi !== '' ? detailPatient.preOdi + '%' : '-' }}</td>
-                      <td>-</td>
-                      <td>-</td>
-                      <td><span class="badge bg-warning text-dark">術前</span></td>
+                      <td class="small tabular-nums fw-medium">{{ detailPatient.preOdi !== '' ? detailPatient.preOdi + '%' : '—' }}</td>
+                      <td>—</td>
+                      <td>—</td>
+                      <td style="text-align: right;"><span class="badge bg-secondary-soft text-secondary">系統</span></td>
                     </tr>
-                    <!-- 追蹤記錄（template v-for 讓展開列共享同一個 r）-->
+                    <!-- 追蹤記錄 -->
                     <template v-for="r in detailRecords" :key="r.logId">
                       <tr>
-                        <td>
-                          <span class="badge bg-light text-dark border">D+{{ r.daysPostOp }}</span>
+                        <td class="tabular-nums">
+                          <span class="badge bg-light text-dark border font-monospace px-2.5">D+{{ r.daysPostOp }}</span>
                         </td>
-                        <td class="small text-muted">{{ r.logDatetime }}</td>
+                        <td class="small text-muted tabular-nums font-monospace">{{ r.logDatetime }}</td>
                         <td><span :class="vasClass(r.vasBack)">{{ r.vasBack }}</span></td>
                         <td><span :class="vasClass(r.vasLeg)">{{ r.vasLeg }}</span></td>
                         <td>
-                          <span v-if="r.odiScore !== ''" class="small">
-                            <button class="btn btn-link btn-sm p-0 text-decoration-none"
-                                    :title="r.odiDetail ? '點擊展開各題明細' : '無各題明細（門診填寫）'"
-                                    @click="r.odiDetail && toggleOdi(r.logId)">
+                          <span v-if="r.odiScore !== ''" class="small tabular-nums">
+                            <button class="btn btn-link btn-odi-trigger p-0 text-decoration-none d-inline-flex align-items-center"
+                                    :title="r.odiDetail ? '點擊展開各題明細' : '無各題明細（門診快速填寫）'"
+                                    @click="r.odiDetail && toggleOdi(r.logId)"
+                                    :aria-expanded="expandedOdi.has(r.logId)">
                               {{ r.odiScore }}%
-                              <span class="text-muted">({{ odiSeverity(r.odiScore) }})</span>
+                              <span class="text-muted ms-1" style="font-size: .75rem;">({{ odiSeverity(r.odiScore) }})</span>
                               <i v-if="r.odiDetail" :class="expandedOdi.has(r.logId) ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"
-                                 class="ms-1 text-primary" style="font-size:.7rem"></i>
+                                 class="ms-1.5 text-teal" style="font-size: .7rem;" aria-hidden="true"></i>
                             </button>
                           </span>
-                          <span v-else class="text-muted">-</span>
+                          <span v-else class="text-muted">—</span>
                         </td>
-                        <td class="small">{{ r.anchorQ ? anchorLabel(r.anchorQ) : '-' }}</td>
+                        <td class="small text-dark">{{ r.anchorQ ? anchorLabel(r.anchorQ) : '—' }}</td>
                         <td>
-                          <span v-if="r.pass === 'Y'" class="badge bg-success">可接受</span>
-                          <span v-else-if="r.pass === 'N'" class="badge bg-danger">不滿意</span>
-                          <span v-else class="text-muted">-</span>
+                          <span v-if="r.pass === 'Y'" class="badge bg-success-soft text-success px-2 py-0.5 border border-success-light">可接受</span>
+                          <span v-else-if="r.pass === 'N'" class="badge bg-danger-soft text-danger px-2 py-0.5 border border-danger-light">不滿意</span>
+                          <span v-else class="text-muted">—</span>
                         </td>
-                        <td>
-                          <span :class="r.recordType === 'direct' ? 'badge bg-primary' : r.recordType === 'ai_parsed' ? 'badge bg-info text-dark' : 'badge bg-secondary'"
-                                style="font-size:.7rem">
+                        <td style="text-align: right;">
+                          <span :class="r.recordType === 'direct' ? 'badge bg-teal-soft text-teal border border-teal-light' : r.recordType === 'ai_parsed' ? 'badge bg-purple-soft text-purple border border-purple-light' : 'badge bg-light text-muted border'"
+                                style="font-size: .7rem; font-weight: 500;">
                             {{ r.recordType === 'direct' ? 'LINE' : r.recordType === 'ai_parsed' ? 'AI解析' : r.recordType }}
                           </span>
                         </td>
                       </tr>
-                      <!-- ODI 各題展開列 -->
+                      <!-- ODI 各題展開明細 -->
                       <tr v-if="r.odiDetail && expandedOdi.has(r.logId)"
-                          style="background:#f0f7ff">
-                        <td colspan="8" class="py-2 px-4">
-                          <div class="small fw-bold text-primary mb-2">ODI 各題明細</div>
-                          <div class="row g-1">
+                          style="background-color: var(--color-bg-base);">
+                        <td colspan="8" class="py-3 px-4 border-bottom">
+                          <div class="small fw-bold text-teal mb-2.5 d-flex align-items-center gap-1.5">
+                            <i class="bi bi-card-list" aria-hidden="true"></i>ODI 問卷答題明細
+                          </div>
+                          <div class="row g-2">
                             <div v-for="item in odiDetailRows(r.odiDetail)" :key="item.title"
                                  class="col-6 col-md-4 col-lg-3">
-                              <div class="d-flex align-items-center gap-2 px-2 py-1 rounded"
-                                   style="background:#fff;border:1px solid #dee2e6">
-                                <span class="badge"
-                                      :style="`background:${['#34a853','#8bc34a','#ffeb3b','#ff9800','#f44336','#b71c1c'][item.score]};color:${item.score>=3?'#fff':'#333'};min-width:22px`">
+                              <div class="d-flex align-items-center gap-2 px-2.5 py-1.5 rounded-3 bg-white border shadow-sm">
+                                <span class="badge d-flex align-items-center justify-content-center tabular-nums"
+                                      :style="`background-color:${['#10b981','#84cc16','#eab308','#f97316','#ef4444','#991b1b'][item.score]};color:${item.score>=3?'#fff':'#1f2937'};min-width:24px;height:24px;border-radius:50%;font-weight:700`">
                                   {{ item.score }}
                                 </span>
-                                <div>
-                                  <div style="font-size:.7rem;color:#888">{{ item.title }}</div>
-                                  <div style="font-size:.8rem;font-weight:600">{{ item.label }}</div>
+                                <div class="text-truncate" style="flex: 1;">
+                                  <div class="text-muted text-truncate" style="font-size: .65rem;">{{ item.title }}</div>
+                                  <div class="fw-semibold text-dark text-truncate" style="font-size: .78rem;" :title="item.label">{{ item.label }}</div>
                                 </div>
                               </div>
                             </div>
@@ -627,9 +665,9 @@ onMounted(load)
               </div>
 
               <!-- Footer -->
-              <div class="px-4 py-2 border-top d-flex justify-content-between align-items-center">
-                <span class="small text-muted">共 {{ detailRecords.length }} 筆記錄</span>
-                <button class="btn btn-secondary btn-sm" @click="detailModal = false">關閉</button>
+              <div class="px-4 py-3 border-top d-flex justify-content-between align-items-center bg-light-surface">
+                <span class="small text-muted tabular-nums">共計 {{ detailRecords.length }} 筆歷史記錄</span>
+                <button class="btn btn-secondary btn-sm px-4 py-1.5" @click="detailModal = false">關閉</button>
               </div>
             </template>
           </div>
@@ -637,16 +675,24 @@ onMounted(load)
       </Transition>
     </Teleport>
 
-    <!-- Toast -->
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9000">
+    <!-- Toast container -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9000;">
       <Transition name="toast-fade">
         <div v-if="toast.show"
-             :class="`toast show align-items-center text-white border-0 bg-${toast.type}`"
-             role="alert">
+             class="toast show align-items-center text-white border-0 shadow-lg px-2 py-1"
+             :class="`bg-${toast.type === 'danger' ? 'danger' : toast.type === 'warning' ? 'warning' : 'success'}`"
+             role="alert"
+             aria-live="assertive"
+             aria-atomic="true">
           <div class="d-flex">
-            <div class="toast-body">{{ toast.msg }}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto"
-                    @click="toast.show = false"></button>
+            <div class="toast-body fw-medium d-flex align-items-center gap-2">
+              <i v-if="toast.type === 'success'" class="bi bi-check-circle-fill" aria-hidden="true"></i>
+              <i v-else-if="toast.type === 'warning'" class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+              <i v-else class="bi bi-x-circle-fill" aria-hidden="true"></i>
+              {{ toast.msg }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto shadow-none"
+                    @click="toast.show = false" aria-label="關閉通知"></button>
           </div>
         </div>
       </Transition>
@@ -656,31 +702,204 @@ onMounted(load)
 </template>
 
 <style scoped>
-.sys-menu { position: relative; }
 .sys-menu-dropdown {
-  display: none; position: absolute; top: calc(100% + 6px); right: 0;
-  background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.15);
-  padding: 6px 0; min-width: 170px; z-index: 1000;
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--color-bg-surface);
+  border-radius: 12px;
+  padding: 6px 0;
+  min-width: 180px;
+  z-index: 1000;
+  border-color: var(--color-border);
 }
-.sys-menu:hover .sys-menu-dropdown { display: block; }
-.sys-menu-dropdown div {
-  padding: 6px 14px; font-size: .82rem; color: #333; white-space: nowrap;
+.sys-menu:hover .sys-menu-dropdown {
+  display: block;
 }
-.sys-menu-dropdown div + div { border-top: 1px solid #f0f4f8; }
+.dropdown-item {
+  padding: 8px 16px;
+  font-size: .85rem;
+  color: var(--color-text-main);
+  white-space: nowrap;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.15s ease;
+}
+.dropdown-item:hover {
+  background-color: var(--color-bg-base);
+}
+.dropdown-item + .dropdown-item {
+  border-top: 1px solid var(--color-border);
+}
+
+/* Redefined premium VAS colors */
 .vas-pill {
-  display: inline-block; width: 28px; height: 28px; border-radius: 50%;
-  line-height: 28px; text-align: center; font-size: .8rem; font-weight: 600; color: #fff;
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  line-height: 26px;
+  text-align: center;
+  font-size: .78rem;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
-.vas-0  { background: #34a853; } .vas-1  { background: #4caf50; }
-.vas-2  { background: #8bc34a; } .vas-3  { background: #cddc39; color: #333; }
-.vas-4  { background: #ffeb3b; color: #333; } .vas-5  { background: #ffc107; color: #333; }
-.vas-6  { background: #ff9800; } .vas-7  { background: #ff5722; }
-.vas-8  { background: #f44336; } .vas-9  { background: #e53935; }
-.vas-10 { background: #b71c1c; }
-.toast-fade-enter-active, .toast-fade-leave-active { transition: opacity .3s; }
-.toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; }
-.slide-down-enter-active, .slide-down-leave-active { transition: all .3s ease; }
-.slide-down-enter-from, .slide-down-leave-to { opacity: 0; transform: translateY(-12px); }
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity .2s; }
-.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+.vas-0, .vas-1, .vas-2 { background-color: #10b981; } /* mild green */
+.vas-3, .vas-4, .vas-5 { background-color: #f59e0b; color: #1f2937; } /* warm amber */
+.vas-6, .vas-7, .vas-8 { background-color: #f97316; } /* intense orange */
+.vas-9, .vas-10 { background-color: #ef4444; } /* clinical red */
+
+/* AI UI Indicators */
+.card-header-ai {
+  background: linear-gradient(90deg, rgba(243, 232, 255, 0.4) 0%, rgba(255, 255, 255, 0) 100%);
+}
+.badge-ai-indicator {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.25);
+}
+
+.text-truncate-clinical {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Edit pencil styles */
+.btn-edit-chart {
+  transition: opacity 0.15s, color 0.15s;
+}
+.btn-edit-chart:hover {
+  color: var(--color-accent) !important;
+}
+
+/* Soft teal indicator */
+.bg-soft-teal {
+  background-color: var(--color-primary-light);
+}
+.border-teal-light {
+  border-color: #ccebe5 !important;
+}
+.text-teal {
+  color: var(--color-primary) !important;
+}
+.border-teal {
+  border-color: var(--color-accent) !important;
+}
+
+/* Dot indicators */
+.dot-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.dot-success { background-color: #10b981; }
+.dot-warning { background-color: #f59e0b; }
+.dot-danger { background-color: #ef4444; }
+.dot-secondary { background-color: #94a3b8; }
+
+/* Custom Progress Bar */
+.progress-bar-container {
+  height: 8px;
+  border-radius: 4px;
+  background-color: #f1f5f9;
+  flex-grow: 1;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Modal and transition overrides */
+.btn-close {
+  background-size: 0.8rem;
+  transition: transform 0.15s;
+}
+.btn-close:hover {
+  transform: rotate(90deg);
+}
+.border-dashed {
+  border-style: dashed !important;
+}
+.bg-teal-soft {
+  background-color: var(--color-primary-light);
+}
+.bg-purple-soft {
+  background-color: #f5f3ff;
+}
+.bg-success-soft {
+  background-color: #ecfdf5;
+}
+.bg-danger-soft {
+  background-color: #fef2f2;
+}
+.bg-secondary-soft {
+  background-color: #f8fafc;
+}
+.text-purple {
+  color: #7c3aed !important;
+}
+.border-purple-light {
+  border-color: #ddd6fe !important;
+}
+.border-success-light {
+  border-color: #a7f3d0 !important;
+}
+.border-danger-light {
+  border-color: #fecaca !important;
+}
+.btn-odi-trigger {
+  color: var(--color-text-main);
+  font-weight: 500;
+  transition: color 0.15s;
+}
+.btn-odi-trigger:hover {
+  color: var(--color-accent) !important;
+}
+
+/* Custom CSS focus rings */
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.3);
+  border-color: var(--color-accent) !important;
+  outline: none !important;
+}
+
+/* Transitions */
+.slide-down-enter-active, .slide-down-leave-active {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-down-enter-from, .slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.modal-fade-enter-active, .modal-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.modal-fade-enter-from, .modal-fade-leave-to {
+  opacity: 0;
+}
+
+.toast-fade-enter-active, .toast-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast-fade-enter-from, .toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
 </style>

@@ -7,6 +7,7 @@ import ExportView         from '../views/ExportView.vue'
 import BotManagementView  from '../views/BotManagementView.vue'
 import ClinicCheckInView  from '../views/ClinicCheckInView.vue'
 import DemoView           from '../views/DemoView.vue'
+import IrbFormsView       from '../views/IrbFormsView.vue'
 
 export default createRouter({
   history: createWebHistory(),
@@ -18,6 +19,7 @@ export default createRouter({
     { path: '/export',          component: ExportView        },
     { path: '/bot-management',  component: BotManagementView },
     { path: '/clinic',          component: ClinicCheckInView },
-    { path: '/demo',            component: DemoView          }
+    { path: '/demo',            component: DemoView          },
+    { path: '/irb',             component: IrbFormsView      }
   ]
 })
