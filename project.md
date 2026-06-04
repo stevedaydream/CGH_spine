@@ -1,6 +1,6 @@
 # 專案藍圖：智慧化脊椎手術追蹤系統
 
-> **版本**：V2.9（Vue 3 + GAS + Google Sheets）｜**更新日期**：2026-06-03
+> **版本**：V3.0（Vue 3 + GAS + Google Sheets）｜**更新日期**：2026-06-05
 > **定位**：Vue 3（Cloudflare Pages）為醫護前端、Google Apps Script 為後端 API、Google Sheets 為資料庫、LINE Bot 為病患輸入介面的臨床數據追蹤方案。
 
 ## 專案目的
@@ -213,6 +213,34 @@
 ### VasInput 元件
 
 0–10 的按鈕群組，選中後高亮，雙向綁定 v-model。
+
+### McidView（MCID 達成分析）
+
+MCID/PASS/PGIC 達成分析儀表板，提供臨床研究指標視覺化。
+
+* **分組篩選器**：提供「全部、LINE Bot 組、對照組、部分介入」四種組別的膠囊按鈕篩選。
+* **指標統計卡片**：顯示各組別之總案例數、背痛/腿痛 MCID 達成率、PASS 滿意率等臨床指標。
+* **數據明細表**：支援欄位（研究編號、手術日期、術後天數、背痛/腿痛 VAS 改善、MCID 狀態等）的互動式排序升降冪箭頭。
+* **格式化與設計**：數值與百分比啟用 `tabular-nums`，MCID/PASS 達成狀態採用柔和紅綠色調標記。
+
+### DemoView（功能演示環境）
+
+多角色情境互動模擬器，用於學術報告或功能演練。
+
+* **左側步驟導航**：以時間軸（Timeline）垂直步進引導，模擬「醫師後台」、「護理師回診登記」、「病患 LINE Bot」業務流程。
+* **右側病患手機 Mockup**：採用高質感毛玻璃手機外殼（Glassmorphism Frame）與綠色 LINE Bot 對話視窗，模擬病患真實填寫 VAS/ODI 選項。
+* **AI 臨床資料暫存驗證**：模擬 LINE 訊息傳入後，以 AI 提取 VAS 分數並呈現在待確認卡片上，支援點擊一鍵核准寫入。
+
+### AppNavbar（全域響應式導覽列）
+
+解決手機版面頂部導覽列擁擠問題之響應式導覽組件。
+
+* **桌面版配置（寬度 >= 992px）**：頂部固定漸層導覽列，顯示當前頁面大標題與副標題，按鈕包含 Hover 效果及 Active 狀態。
+* **手機版配置（寬度 < 992px）**：改為底部固定毛玻璃容器（`fixed-bottom` + Backdrop Blur 16px），搭載橫向滾動（Swipeable Row）之膠囊功能鍵列。
+* **相容性設計**：
+  * 使用 `env(safe-area-inset-bottom)` 自動避開手機系統底部虛擬按鍵列。
+  * 主內容容器 `.main-content` 於手機版面自動套用 `padding-bottom: 110px` 避免內容遮擋。
+  * 路由切換使用 Vue Router `route.path` 動態比對，高亮對應選單。
 
 ---
 
