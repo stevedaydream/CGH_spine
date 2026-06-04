@@ -198,53 +198,6 @@ onMounted(load)
 <template>
   <div style="background: var(--color-bg-base); min-height: 100vh; font-family: var(--font-family);">
 
-    <!-- Navbar / Header -->
-    <nav class="navbar navbar-expand-lg navbar-dark px-4 py-3 shadow-sm border-bottom" style="background: linear-gradient(135deg, var(--color-primary), #063e45);">
-      <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
-        <span class="navbar-brand fw-bold fs-5 d-flex align-items-center">
-          <i class="bi bi-hospital me-2" aria-hidden="true"></i>脊椎手術智慧追蹤系統
-        </span>
-        <div class="d-flex gap-2 flex-wrap">
-          <span class="text-white-50 small align-self-center me-2 tabular-nums">臨床管理端</span>
-          <RouterLink to="/" class="btn btn-light btn-sm text-dark px-3 py-1.5 fw-medium d-flex align-items-center gap-1" aria-current="page">
-            <i class="bi bi-house" aria-hidden="true"></i>儀表板
-          </RouterLink>
-          <RouterLink to="/form" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-person-plus" aria-hidden="true"></i>手術登錄
-          </RouterLink>
-          <RouterLink to="/analytics" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-bar-chart-line" aria-hidden="true"></i>分析
-          </RouterLink>
-          <RouterLink to="/mcid" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>MCID
-          </RouterLink>
-          <RouterLink to="/export" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-download" aria-hidden="true"></i>匯出
-          </RouterLink>
-          <RouterLink to="/irb" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-shield-check" aria-hidden="true"></i>IRB表單
-          </RouterLink>
-          <div class="sys-menu position-relative">
-            <RouterLink to="/bot-management" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-              <i class="bi bi-gear" aria-hidden="true"></i>系統設定
-            </RouterLink>
-            <div class="sys-menu-dropdown shadow-lg border">
-              <div class="dropdown-item"><i class="bi bi-robot me-2" aria-hidden="true"></i>LINE Bot 回覆設定</div>
-              <div class="dropdown-item"><i class="bi bi-journal-medical me-2" aria-hidden="true"></i>衛教 QA 管理</div>
-              <div class="dropdown-item"><i class="bi bi-box-seam me-2" aria-hidden="true"></i>耗材管理</div>
-            </div>
-          </div>
-          <RouterLink to="/clinic" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>回診登記
-          </RouterLink>
-          <button v-if="lineQrUrl" class="btn btn-success btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1"
-                  @click="showQr = !showQr" aria-expanded="showQr" aria-controls="qrPanel">
-            <i class="bi bi-qr-code" aria-hidden="true"></i>LINE QR
-          </button>
-        </div>
-      </div>
-    </nav>
-
     <!-- LINE QR 展示卡 -->
     <Transition name="slide-down">
       <div v-if="showQr && lineQrUrl" id="qrPanel"
@@ -276,6 +229,18 @@ onMounted(load)
     </div>
 
     <div v-else class="container-fluid py-4 px-4 max-width-xl">
+
+      <!-- 頁面標題與 LINE QR 按鈕 -->
+      <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+        <div>
+          <h1 class="h3 fw-bold text-teal m-0" style="color: var(--color-primary);">臨床追蹤儀表板</h1>
+          <p class="text-muted small m-0 mt-1">即時監控患者術後回復指標與填寫完整度</p>
+        </div>
+        <button v-if="lineQrUrl" class="btn btn-success btn-sm px-3 py-2 fw-medium d-flex align-items-center gap-2 align-self-start align-self-sm-auto shadow-sm"
+                @click="showQr = !showQr" aria-expanded="showQr" aria-controls="qrPanel">
+          <i class="bi bi-qr-code" aria-hidden="true"></i>{{ showQr ? '關閉 LINE QR 碼' : '開啟 LINE QR 碼' }}
+        </button>
+      </div>
 
       <!-- 統計卡片 -->
       <div class="row g-3 mb-4">

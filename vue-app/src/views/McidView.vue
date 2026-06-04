@@ -86,38 +86,7 @@ function getGroupLabel(group) {
 <template>
   <div style="background: var(--color-bg-base); min-height: 100vh; font-family: var(--font-family);">
 
-    <!-- Navbar / Header -->
-    <nav class="navbar navbar-expand-lg navbar-dark px-4 py-3 shadow-sm border-bottom" style="background: linear-gradient(135deg, var(--color-primary), #063e45);">
-      <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
-        <span class="navbar-brand fw-bold fs-5 d-flex align-items-center">
-          <i class="bi bi-graph-up-arrow me-2" aria-hidden="true"></i>MCID 達成分析
-        </span>
-        <div class="d-flex gap-2 flex-wrap">
-          <span class="text-white-50 small align-self-center me-2 tabular-nums">臨床管理端</span>
-          <RouterLink to="/" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-house" aria-hidden="true"></i>儀表板
-          </RouterLink>
-          <RouterLink to="/form" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-person-plus" aria-hidden="true"></i>手術登錄
-          </RouterLink>
-          <RouterLink to="/analytics" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-bar-chart-line" aria-hidden="true"></i>分析
-          </RouterLink>
-          <RouterLink to="/mcid" class="btn btn-light btn-sm text-dark px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>MCID
-          </RouterLink>
-          <RouterLink to="/export" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-download" aria-hidden="true"></i>匯出
-          </RouterLink>
-          <RouterLink to="/clinic" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>回診登記
-          </RouterLink>
-          <RouterLink to="/demo" class="btn btn-outline-warning btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-play-circle" aria-hidden="true"></i>Demo演示
-          </RouterLink>
-        </div>
-      </div>
-    </nav>
+
 
     <div class="container-fluid py-4 px-4 max-width-xl">
 

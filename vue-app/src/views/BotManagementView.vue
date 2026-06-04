@@ -314,43 +314,13 @@ onMounted(() => { loadReply(); loadEdu(); loadImplants() })
 <template>
   <div style="background: var(--color-bg-base); min-height: 100vh; font-family: var(--font-family);">
 
-    <!-- Navbar / Header -->
-    <nav class="navbar navbar-expand-lg navbar-dark px-4 py-3 shadow-sm border-bottom" style="background: linear-gradient(135deg, var(--color-primary), #063e45);">
-      <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
-        <span class="navbar-brand fw-bold fs-5 d-flex align-items-center">
-          <i class="bi bi-gear me-2" aria-hidden="true"></i>系統設定
-        </span>
-        <div class="d-flex gap-2 flex-wrap">
-          <span class="text-white-50 small align-self-center me-2 tabular-nums">臨床管理端</span>
-          <RouterLink to="/" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-house" aria-hidden="true"></i>儀表板
-          </RouterLink>
-          <RouterLink to="/form" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-person-plus" aria-hidden="true"></i>手術登錄
-          </RouterLink>
-          <RouterLink to="/analytics" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-bar-chart-line" aria-hidden="true"></i>分析
-          </RouterLink>
-          <RouterLink to="/mcid" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>MCID
-          </RouterLink>
-          <RouterLink to="/export" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-download" aria-hidden="true"></i>匯出
-          </RouterLink>
-          <RouterLink to="/irb" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-shield-check" aria-hidden="true"></i>IRB表單
-          </RouterLink>
-          <RouterLink to="/clinic" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>回診登記
-          </RouterLink>
-          <RouterLink to="/demo" class="btn btn-outline-warning btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-play-circle" aria-hidden="true"></i>Demo演示
-          </RouterLink>
-        </div>
-      </div>
-    </nav>
-
     <div class="container-fluid py-4 px-4 max-width-xl">
+
+      <!-- 頁面標題 -->
+      <div class="mb-4">
+        <h1 class="h3 fw-bold text-teal m-0" style="color: var(--color-primary);">系統管理與設定</h1>
+        <p class="text-muted small m-0 mt-1">設定 LINE 機器人自動回覆、衛教 QA 與耗材模組</p>
+      </div>
 
       <!-- 主 Tab 切換器 -->
       <div class="card mb-4 border-0 shadow-sm" style="border-radius: 12px; background: #fff;">

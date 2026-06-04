@@ -123,32 +123,7 @@ function today() {
 <template>
   <div style="background: var(--color-bg-base); min-height: 100vh; font-family: var(--font-family);">
 
-    <!-- Navbar / Header -->
-    <nav class="navbar navbar-expand-lg navbar-dark px-4 py-3 shadow-sm border-bottom" style="background: linear-gradient(135deg, var(--color-primary), #063e45);">
-      <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
-        <span class="navbar-brand fw-bold fs-5 d-flex align-items-center">
-          <i class="bi bi-person-plus me-2" aria-hidden="true"></i>脊椎手術智慧追蹤系統
-        </span>
-        <div class="d-flex gap-2 flex-wrap">
-          <span class="text-white-50 small align-self-center me-2 tabular-nums">新增追蹤個案</span>
-          <RouterLink to="/" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-house" aria-hidden="true"></i>儀表板
-          </RouterLink>
-          <RouterLink to="/clinic" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-clipboard2-pulse" aria-hidden="true"></i>回診登記
-          </RouterLink>
-          <RouterLink to="/analytics" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-bar-chart-line" aria-hidden="true"></i>分析
-          </RouterLink>
-          <RouterLink to="/mcid" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>MCID
-          </RouterLink>
-          <RouterLink to="/irb" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-shield-check" aria-hidden="true"></i>IRB表單
-          </RouterLink>
-        </div>
-      </div>
-    </nav>
+
 
     <div class="container py-4" style="max-width: 780px;">
       <div class="clinical-card overflow-hidden">

@@ -160,32 +160,7 @@ onUnmounted(() => {
 <template>
   <div style="background: var(--color-bg-base); min-height: 100vh; font-family: var(--font-family);">
 
-    <!-- Navbar / Header -->
-    <nav class="navbar navbar-expand-lg navbar-dark px-4 py-3 shadow-sm border-bottom" style="background: linear-gradient(135deg, var(--color-primary), #063e45);">
-      <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
-        <span class="navbar-brand fw-bold fs-5 d-flex align-items-center">
-          <i class="bi bi-bar-chart-line me-2" aria-hidden="true"></i>脊椎手術智慧追蹤系統
-        </span>
-        <div class="d-flex gap-2 flex-wrap">
-          <span class="text-white-50 small align-self-center me-2 tabular-nums">AI 分析儀表板</span>
-          <RouterLink to="/" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-house" aria-hidden="true"></i>儀表板
-          </RouterLink>
-          <RouterLink to="/form" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-person-plus" aria-hidden="true"></i>手術登錄
-          </RouterLink>
-          <RouterLink to="/mcid" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>MCID
-          </RouterLink>
-          <RouterLink to="/irb" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1">
-            <i class="bi bi-shield-check" aria-hidden="true"></i>IRB表單
-          </RouterLink>
-          <button class="btn btn-light btn-sm text-dark px-3 py-1.5 fw-medium d-flex align-items-center gap-1 transition-btn" @click="load" aria-label="重新整理數據">
-            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>重新整理
-          </button>
-        </div>
-      </div>
-    </nav>
+
 
     <!-- Loading overlay -->
     <div v-if="loading"
