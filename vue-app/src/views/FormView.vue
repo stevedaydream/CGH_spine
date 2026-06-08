@@ -4,7 +4,7 @@ import VasInput from '../components/VasInput.vue'
 import { getFormOptions, addOperationRecord, addFollowUpRecord } from '../api/gas.js'
 
 // ── 下拉選單資料 ───────────────────────────────────────
-const opts = reactive({ patientIds: [], cageCodes: [], nextId: '', surgeons: [] })
+const opts = reactive({ patientIds: [], cageCodes: [], nextId: '', surgeons: [], chartMap: {} })
 
 const OP_TYPES   = ['TLIF', 'Endoscopic TLIF', 'PLIF', 'MIS-TLIF', 'MIDLIF', 'Decompression only', 'Others']
 const BONE_GRAFTS = ['自體骨', '同種骨', '人工骨', '骨水泥', '無']
@@ -21,6 +21,7 @@ onMounted(async () => {
     opts.cageCodes   = data.cageCodes  || []
     opts.nextId      = data.nextId     || ''
     opts.surgeons    = data.surgeons   || []
+    opts.chartMap    = data.chartMap   || {}
     formA.researchId = data.nextId     || ''
   } catch (_) {}
 })
@@ -113,6 +114,25 @@ function resetB() {
     odiScore: '', pass: '', anchorQ: '', woundStatus: '' })
   Object.keys(errB).forEach(k => delete errB[k])
   doneB.value = { show: false, daysPostOp: null, odiScore: null }
+  chartInput.value = ''
+  chartErr.value   = ''
+}
+
+// ── 病歷號快速帶入 ─────────────────────────────────────
+const chartInput = ref('')
+const chartErr   = ref('')
+
+function lookupByChart() {
+  const num = chartInput.value.trim()
+  if (!num) return
+  const rid = opts.chartMap[num]
+  if (rid) {
+    formB.researchId = rid
+    chartInput.value = ''
+    chartErr.value   = ''
+  } else {
+    chartErr.value = `查無病歷號「${num}」對應的研究編號`
+  }
 }
 
 // ── Toast ──────────────────────────────────────────────
@@ -409,6 +429,28 @@ function today() {
 
                 <!-- 病患選擇 -->
                 <div class="section-label">病患</div>
+
+                <!-- 病歷號快速帶入 -->
+                <div class="mb-3">
+                  <label class="form-label">
+                    <i class="bi bi-search me-1"></i>以病歷號查詢
+                  </label>
+                  <div class="input-group">
+                    <input v-model="chartInput" type="text" class="form-control"
+                           :class="{ 'is-invalid': chartErr }"
+                           placeholder="輸入院內病歷號，Enter 自動帶入研究編號"
+                           @keydown.enter.prevent="lookupByChart"
+                           @input="chartErr = ''">
+                    <button class="btn btn-outline-primary" type="button" @click="lookupByChart">
+                      <i class="bi bi-arrow-right-circle me-1"></i>帶入
+                    </button>
+                  </div>
+                  <div v-if="chartErr" class="text-danger small mt-1">
+                    <i class="bi bi-exclamation-circle me-1"></i>{{ chartErr }}
+                  </div>
+                  <div class="form-text">輸入完畢按 Enter 或點「帶入」，自動填入下方研究編號</div>
+                </div>
+
                 <div class="mb-4">
                   <label class="form-label">研究編號 <span class="text-danger">*</span></label>
                   <input v-model="formB.researchId" type="text" class="form-control form-control-lg"

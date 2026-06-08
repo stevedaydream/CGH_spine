@@ -76,6 +76,7 @@
 | 前端 | Cloudflare Pages | `.wrangler/` 設定，GitHub 推送自動部署 |
 | 後端 | GAS Web App | `clasp push`，Script Properties 存密鑰 |
 | 環境變數（GAS） | Script Properties | `LINE_CHANNEL_ACCESS_TOKEN`、`GEMINI_API_KEY`、`ADMIN_EMAIL`、`DOCTOR_EMAIL`、`PRIVACY_TABLE_ID` |
+| 環境變數（Vue） | `.env` | `VITE_GAS_URL`、`VITE_API_KEY`、`VITE_LINE_BOT_ID`、`VITE_SHEET_URL`（Google Sheets 後端資料表連結）|
 
 ---
 
@@ -94,12 +95,17 @@
 
 ### DashboardView（醫護後台）
 
+**Navbar：**
+- 品牌標題 + 醫護後台標籤 + 各頁路由按鈕 + 試算表按鈕（`VITE_SHEET_URL`）+ LINE QR 按鈕
+- 手機版：整列 `overflow-x:auto; flex-wrap:nowrap`，內容固定單行可左右滑動
+
 **統計卡片（4 個）：** 總病患數 / 追蹤中 / 平均完整度 / 待確認數
 
 **AI 暫存待確認區：**
 - 顯示所有 `review_status = pending` 的記錄
-- 每列顯示：研究編號、原始訊息（截斷）、AI 解讀 VAS（色圓 pill）、AI 摘要、解析時間
+- 每列顯示：研究編號、原始訊息（截斷 200px）、AI 解讀 VAS（色圓 pill）、AI 摘要（截斷 220px）、解析時間
 - 操作：核准（→ 移入追蹤日誌）、拒絕
+- 手機版：`table` 整體 `white-space:nowrap`，搭配 `table-responsive` 橫向捲動，不換行不壓縮
 
 **病患追蹤列表：**
 - 欄位：研究編號 / **病歷號**（行內編輯）/ 手術日期 / 手術類型 / Cage / 術後天數 / LINE 狀態 / 最後 VAS / 追蹤完整度（進度條）

@@ -13,6 +13,8 @@ const lineQrUrl   = LINE_BOT_ID ? `https://qr-official.line.me/sid/L/${LINE_BOT_
 const lineAddUrl  = LINE_BOT_ID ? `https://line.me/R/ti/p/@${LINE_BOT_ID}` : ''
 const showQr      = ref(false)
 
+const sheetUrl = import.meta.env.VITE_SHEET_URL || ''
+
 const loading  = ref(true)
 const summary  = ref({ totalPatients: 0, activePatients: 0, avgCompleteness: 0, pendingReview: 0 })
 const pending  = ref([])
@@ -187,18 +189,25 @@ onMounted(load)
   <div style="background:#f0f4f8; min-height:100vh; font-family:'Segoe UI',sans-serif">
 
     <!-- Navbar -->
-    <nav class="navbar navbar-dark px-3 py-2" style="background:linear-gradient(135deg,#1a73e8,#0d47a1)">
-      <span class="navbar-brand fw-bold">
-        <i class="bi bi-hospital me-2"></i>脊椎追蹤系統
-      </span>
-      <div class="d-flex gap-2">
-        <span class="text-white-50 small align-self-center">醫護後台</span>
+    <nav class="navbar navbar-dark px-3 py-2"
+         style="background:linear-gradient(135deg,#1a73e8,#0d47a1);overflow-x:auto;flex-wrap:nowrap">
+      <div class="d-flex align-items-center gap-2" style="flex-wrap:nowrap;min-width:max-content">
+        <span class="navbar-brand fw-bold mb-0">
+          <i class="bi bi-hospital me-2"></i>脊椎追蹤系統
+        </span>
+        <span class="text-white-50 small">醫護後台</span>
         <RouterLink to="/form"      class="btn btn-outline-light btn-sm"><i class="bi bi-pencil-square me-1"></i>填表</RouterLink>
         <RouterLink to="/analytics" class="btn btn-outline-light btn-sm"><i class="bi bi-bar-chart-line me-1"></i>分析</RouterLink>
         <RouterLink to="/mcid"      class="btn btn-outline-light btn-sm"><i class="bi bi-graph-up-arrow me-1"></i>MCID</RouterLink>
-        <RouterLink to="/export"     class="btn btn-outline-light btn-sm"><i class="bi bi-download me-1"></i>匯出</RouterLink>
+        <RouterLink to="/export"    class="btn btn-outline-light btn-sm"><i class="bi bi-download me-1"></i>匯出</RouterLink>
         <RouterLink to="/bot-management" class="btn btn-outline-light btn-sm"><i class="bi bi-robot me-1"></i>Bot管理</RouterLink>
+        <a v-if="sheetUrl" :href="sheetUrl" target="_blank" rel="noopener"
+           class="btn btn-sm"
+           style="background:#0f9d58;color:#fff;border-color:#0f9d58;white-space:nowrap">
+          <i class="bi bi-table me-1"></i>試算表
+        </a>
         <button v-if="lineQrUrl" class="btn btn-success btn-sm"
+                style="white-space:nowrap"
                 @click="showQr = !showQr">
           <i class="bi bi-qr-code me-1"></i>LINE QR
         </button>
@@ -285,7 +294,7 @@ onMounted(load)
 
           <!-- 待確認表格 -->
           <div v-else class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0" style="white-space:nowrap">
               <thead class="table-light">
                 <tr>
                   <th>研究編號</th>
@@ -301,7 +310,7 @@ onMounted(load)
                   <td><strong>{{ r.researchId }}</strong></td>
                   <td>
                     <div :title="r.rawMessage"
-                         style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85rem;color:#555">
+                         style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85rem;color:#555">
                       {{ r.rawMessage }}
                     </div>
                   </td>
@@ -310,9 +319,14 @@ onMounted(load)
                     <span class="text-muted small mx-1">/</span>
                     <span :class="vasClass(r.aiVasLeg)">{{ r.aiVasLeg !== '' ? r.aiVasLeg : '?' }}</span>
                   </td>
-                  <td class="small">{{ r.aiSummary }}</td>
-                  <td class="small text-muted">{{ r.aiParsedAt }}</td>
                   <td>
+                    <div :title="r.aiSummary"
+                         style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85rem">
+                      {{ r.aiSummary }}
+                    </div>
+                  </td>
+                  <td class="small text-muted">{{ r.aiParsedAt }}</td>
+                  <td style="white-space:nowrap">
                     <button class="btn btn-success btn-sm me-1"
                             :disabled="approveLoadingRows.has(r.rowIndex)"
                             @click="doApprove(r.rowIndex)"

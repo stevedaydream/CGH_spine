@@ -123,7 +123,23 @@ function getFormOptions_() {
     .filter(Boolean);
   var surgeons    = Array.from(new Set(fromProp.concat(fromSheet)));
 
-  return { patientIds: patientIds, cageCodes: cageCodes, nextId: nextId, surgeons: surgeons };
+  // 病歷號 → research_id 反查表（供 Tab B 快速帶入）
+  var chartMap = {};
+  var privacySheetId = getConfig_('PRIVACY_TABLE_ID');
+  if (privacySheetId) {
+    try {
+      var privacyData = SpreadsheetApp.openById(privacySheetId).getSheets()[0].getDataRange().getValues();
+      for (var pi = 1; pi < privacyData.length; pi++) {
+        var chartNum = String(privacyData[pi][PRIVACY_COL.CHART_NUMBER] || '').trim();
+        var privRid  = String(privacyData[pi][PRIVACY_COL.RESEARCH_ID]  || '').trim();
+        if (chartNum && privRid) chartMap[chartNum] = privRid;
+      }
+    } catch (e) {
+      Logger.log('[getFormOptions_] chartMap: ' + e.message);
+    }
+  }
+
+  return { patientIds: patientIds, cageCodes: cageCodes, nextId: nextId, surgeons: surgeons, chartMap: chartMap };
 }
 
 /**
