@@ -3,12 +3,8 @@ import { ref, reactive, onMounted, computed, watch } from 'vue'
 import VasInput from '../components/VasInput.vue'
 import { getFormOptions, addOperationRecord } from '../api/gas.js'
 
-<<<<<<< HEAD
 // ── 下拉選單資料 ───────────────────────────────────────
 const opts = reactive({ patientIds: [], cageCodes: [], nextId: '', surgeons: [], chartMap: {} })
-=======
-const opts = reactive({ patientIds: [], cageCodes: [], nextId: '', surgeons: [] })
->>>>>>> 8e67aeed45e29d28b4c16e879bb8874c471d5843
 
 const OP_TYPES    = ['TLIF', 'Endoscopic TLIF', 'PLIF', 'MIS-TLIF', 'MIDLIF', 'Decompression only', 'Others']
 const BONE_GRAFTS = ['自體骨', '同種骨', '人工骨', '骨水泥', '無']
@@ -109,7 +105,6 @@ function resetA() {
   bindingCode.value = ''
 }
 
-<<<<<<< HEAD
 // ── Tab B：術後追蹤 ────────────────────────────────────
 const formB = reactive({
   researchId: '', vasBack: null, vasLeg: null,
@@ -166,8 +161,6 @@ function lookupByChart() {
 }
 
 // ── Toast ──────────────────────────────────────────────
-=======
->>>>>>> 8e67aeed45e29d28b4c16e879bb8874c471d5843
 const toast = ref({ show: false, msg: '', type: 'danger' })
 let toastTimer = null
 function showToast(msg, type = 'danger') {
@@ -478,7 +471,6 @@ function today() {
       </div>
     </div>
 
-<<<<<<< HEAD
     <div class="container py-4" style="max-width:760px">
 
       <!-- Bootstrap Tabs -->
@@ -841,11 +833,6 @@ function today() {
     <!-- Toast -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9000">
       <Transition name="fade">
-=======
-    <!-- Toast container -->
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9000;">
-      <Transition name="toast-fade">
->>>>>>> 8e67aeed45e29d28b4c16e879bb8874c471d5843
         <div v-if="toast.show"
              class="toast show align-items-center text-white border-0 shadow-lg px-2 py-1"
              :class="`bg-${toast.type === 'danger' ? 'danger' : toast.type === 'warning' ? 'warning' : 'success'}`"

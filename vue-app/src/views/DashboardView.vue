@@ -200,37 +200,7 @@ onMounted(load)
 <template>
   <div style="background: var(--color-bg-base); min-height: 100vh; font-family: var(--font-family);">
 
-<<<<<<< HEAD
-    <!-- Navbar -->
-    <nav class="navbar navbar-dark px-3 py-2"
-         style="background:linear-gradient(135deg,#1a73e8,#0d47a1);overflow-x:auto;flex-wrap:nowrap">
-      <div class="d-flex align-items-center gap-2" style="flex-wrap:nowrap;min-width:max-content">
-        <span class="navbar-brand fw-bold mb-0">
-          <i class="bi bi-hospital me-2"></i>脊椎追蹤系統
-        </span>
-        <span class="text-white-50 small">醫護後台</span>
-        <RouterLink to="/form"      class="btn btn-outline-light btn-sm"><i class="bi bi-pencil-square me-1"></i>填表</RouterLink>
-        <RouterLink to="/analytics" class="btn btn-outline-light btn-sm"><i class="bi bi-bar-chart-line me-1"></i>分析</RouterLink>
-        <RouterLink to="/mcid"      class="btn btn-outline-light btn-sm"><i class="bi bi-graph-up-arrow me-1"></i>MCID</RouterLink>
-        <RouterLink to="/export"    class="btn btn-outline-light btn-sm"><i class="bi bi-download me-1"></i>匯出</RouterLink>
-        <RouterLink to="/bot-management" class="btn btn-outline-light btn-sm"><i class="bi bi-robot me-1"></i>Bot管理</RouterLink>
-        <a v-if="sheetUrl" :href="sheetUrl" target="_blank" rel="noopener"
-           class="btn btn-sm"
-           style="background:#0f9d58;color:#fff;border-color:#0f9d58;white-space:nowrap">
-          <i class="bi bi-table me-1"></i>試算表
-        </a>
-        <button v-if="lineQrUrl" class="btn btn-success btn-sm"
-                style="white-space:nowrap"
-                @click="showQr = !showQr">
-          <i class="bi bi-qr-code me-1"></i>LINE QR
-        </button>
-      </div>
-    </nav>
-
     <!-- LINE QR 展示卡（全寬橫幅，給病患掃）-->
-=======
-    <!-- LINE QR 展示卡 -->
->>>>>>> 8e67aeed45e29d28b4c16e879bb8874c471d5843
     <Transition name="slide-down">
       <div v-if="showQr && lineQrUrl" id="qrPanel"
            style="background: linear-gradient(135deg, #10b981, #059669); padding: 24px 0;" class="shadow-inner">
@@ -268,10 +238,17 @@ onMounted(load)
           <h1 class="h3 fw-bold text-teal m-0" style="color: var(--color-primary);">臨床追蹤儀表板</h1>
           <p class="text-muted small m-0 mt-1">即時監控患者術後回復指標與填寫完整度</p>
         </div>
-        <button v-if="lineQrUrl" class="btn btn-success btn-sm px-3 py-2 fw-medium d-flex align-items-center gap-2 align-self-start align-self-sm-auto shadow-sm"
-                @click="showQr = !showQr" aria-expanded="showQr" aria-controls="qrPanel">
-          <i class="bi bi-qr-code" aria-hidden="true"></i>{{ showQr ? '關閉 LINE QR 碼' : '開啟 LINE QR 碼' }}
-        </button>
+        <div class="d-flex gap-2 align-self-start align-self-sm-auto">
+          <a v-if="sheetUrl" :href="sheetUrl" target="_blank" rel="noopener"
+             class="btn btn-sm px-3 py-2 fw-medium d-flex align-items-center gap-2 shadow-sm"
+             style="background:#0f9d58;color:#fff;border-color:#0f9d58">
+            <i class="bi bi-table" aria-hidden="true"></i>試算表
+          </a>
+          <button v-if="lineQrUrl" class="btn btn-success btn-sm px-3 py-2 fw-medium d-flex align-items-center gap-2 shadow-sm"
+                  @click="showQr = !showQr" aria-expanded="showQr" aria-controls="qrPanel">
+            <i class="bi bi-qr-code" aria-hidden="true"></i>{{ showQr ? '關閉 LINE QR 碼' : '開啟 LINE QR 碼' }}
+          </button>
+        </div>
       </div>
 
       <!-- 統計卡片 -->
@@ -336,13 +313,8 @@ onMounted(load)
 
           <!-- 待確認表格 -->
           <div v-else class="table-responsive">
-<<<<<<< HEAD
             <table class="table table-hover align-middle mb-0" style="white-space:nowrap">
               <thead class="table-light">
-=======
-            <table class="clinical-table mb-0">
-              <thead>
->>>>>>> 8e67aeed45e29d28b4c16e879bb8874c471d5843
                 <tr>
                   <th scope="col">研究編號</th>
                   <th scope="col">原始訊息</th>
@@ -356,12 +328,8 @@ onMounted(load)
                 <tr v-for="r in pending" :key="r.rowIndex">
                   <td class="tabular-nums"><strong>{{ r.researchId }}</strong></td>
                   <td>
-<<<<<<< HEAD
                     <div :title="r.rawMessage"
                          style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85rem;color:#555">
-=======
-                    <div :title="r.rawMessage" class="text-truncate-clinical" style="max-width: 250px;">
->>>>>>> 8e67aeed45e29d28b4c16e879bb8874c471d5843
                       {{ r.rawMessage }}
                     </div>
                   </td>
@@ -370,7 +338,6 @@ onMounted(load)
                     <span class="text-muted small mx-1">/</span>
                     <span :class="vasClass(r.aiVasLeg)">{{ r.aiVasLeg !== '' ? r.aiVasLeg : '?' }}</span>
                   </td>
-<<<<<<< HEAD
                   <td>
                     <div :title="r.aiSummary"
                          style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85rem">
@@ -380,12 +347,6 @@ onMounted(load)
                   <td class="small text-muted">{{ r.aiParsedAt }}</td>
                   <td style="white-space:nowrap">
                     <button class="btn btn-success btn-sm me-1"
-=======
-                  <td><div class="text-truncate-clinical" style="max-width: 250px;">{{ r.aiSummary }}</div></td>
-                  <td class="tabular-nums text-muted small">{{ r.aiParsedAt }}</td>
-                  <td style="text-align: right; white-space: nowrap;">
-                    <button class="btn btn-success btn-sm me-2 px-3"
->>>>>>> 8e67aeed45e29d28b4c16e879bb8874c471d5843
                             :disabled="approveLoadingRows.has(r.rowIndex)"
                             @click="doApprove(r.rowIndex)"
                             aria-label="核准此 AI 記錄">
