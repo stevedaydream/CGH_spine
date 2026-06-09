@@ -22,6 +22,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+thead th {
+  white-space: nowrap;
+}
+
 /* Accessible focus ring */
 *:focus-visible {
   outline: 3px solid rgba(20, 184, 166, 0.45);

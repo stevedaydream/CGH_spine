@@ -235,7 +235,7 @@ onMounted(load)
       <!-- 頁面標題與 LINE QR 按鈕 -->
       <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
         <div>
-          <h1 class="h3 fw-bold text-teal m-0" style="color: var(--color-primary);">臨床追蹤儀表板</h1>
+          <h1 class="h3 fw-bold text-teal m-0" style="color: var(--color-primary); white-space: nowrap;">臨床追蹤儀表板</h1>
           <p class="text-muted small m-0 mt-1">即時監控患者術後回復指標與填寫完整度</p>
         </div>
         <div class="d-flex gap-2 align-self-start align-self-sm-auto">
@@ -298,7 +298,7 @@ onMounted(load)
         <div class="card-header-ai px-4 py-3 d-flex justify-content-between align-items-center border-bottom">
           <div class="d-flex align-items-center gap-2">
             <span class="badge-ai-indicator" aria-hidden="true">AI</span>
-            <h2 class="fs-6 m-0 fw-bold" style="color: var(--color-primary);">AI 暫存待確認區</h2>
+            <h2 class="fs-6 m-0 fw-bold" style="color: var(--color-primary); white-space: nowrap;">AI 暫存待確認區</h2>
           </div>
           <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 px-3 py-1.5 border-dashed" @click="load" aria-label="重新整理待確認列表">
             <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>重新整理
@@ -369,7 +369,7 @@ onMounted(load)
       <!-- 病患追蹤列表 -->
       <div class="clinical-card overflow-hidden">
         <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-center">
-          <h2 class="fs-6 m-0 fw-bold" style="color: var(--color-primary);">病患術後追蹤狀態</h2>
+          <h2 class="fs-6 m-0 fw-bold" style="color: var(--color-primary);white-space: nowrap;">病患術後追蹤狀態</h2>
         </div>
         <div class="p-0">
           <div class="table-responsive">

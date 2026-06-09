@@ -36,7 +36,7 @@ const menuItems = [
     <!-- Desktop Top Navbar (screens >= 992px) -->
     <nav class="desktop-navbar d-none d-lg-flex px-4 py-3 shadow-sm border-bottom">
       <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
-        <span class="navbar-brand fw-bold fs-5 d-flex align-items-center">
+        <span class="navbar-brand fw-bold fs-5 d-flex align-items-center" style="white-space: nowrap;">
           <i :class="'bi ' + pageTitle.icon + ' me-2'" aria-hidden="true"></i>{{ pageTitle.brand }}
         </span>
         <div class="d-flex gap-2 flex-wrap align-items-center">
@@ -67,17 +67,18 @@ const menuItems = [
       </div>
       
       <!-- 滾動式選單按鈕列 -->
-      <div class="mobile-menu-scroll d-flex gap-2 px-3 py-2.5">
+      <div class="mobile-menu-scroll d-flex gap-2 px-3" style="padding-top: 10px; padding-bottom: 10px;">
         <RouterLink v-for="item in menuItems" :key="item.path"
                     :to="item.path"
-                    class="btn btn-sm px-3.5 py-2.5 fw-semibold d-flex align-items-center gap-1.5 transition-btn rounded-pill text-nowrap"
+                    class="btn fw-semibold d-flex align-items-center gap-2 transition-btn rounded-pill text-nowrap"
+                    style="padding: 10px 18px; min-height: 44px;"
                     :class="[
                       route.path === item.path
                         ? (item.type === 'warning' ? 'btn-warning-active text-dark shadow-sm' : 'btn-active-teal text-white shadow-sm')
                         : 'btn-mobile-inactive text-secondary'
                     ]">
-          <i :class="'bi ' + item.icon" aria-hidden="true" style="font-size: 0.9rem;"></i>
-          <span style="font-size: 0.78rem;">{{ item.label }}</span>
+          <i :class="'bi ' + item.icon" aria-hidden="true" style="font-size: 1.1rem;"></i>
+          <span style="font-size: 0.88rem;">{{ item.label }}</span>
         </RouterLink>
       </div>
     </nav>
