@@ -5,6 +5,7 @@
 /**
  * 主排程函式，由時間觸發器每天 08:00 呼叫。
  * 掃描所有 active 病患，判斷今天是否為推播日，防重複後發送。
+ * 效能優化：一次讀取 FOLLOW_UP 與 PUSH_LOG，迴圈內純記憶體查詢。
  */
 function dailyPushScheduler() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -15,6 +16,39 @@ function dailyPushScheduler() {
 
   var patients = opSheet.getDataRange().getValues();
   var errors = [];
+
+  // ── 一次讀取 FOLLOW_UP，建立 lastRecordMap ──────────────────
+  var followUpData = ss.getSheetByName(SHEET.FOLLOW_UP).getDataRange().getValues();
+  var lastRecordMap = {};  // researchId → { vasBack, vasLeg, daysPostOp }
+  for (var f = 1; f < followUpData.length; f++) {
+    var fRow = followUpData[f];
+    if (fRow[LOG_COL.CONFIRMED] !== true) continue;
+    var fId = String(fRow[LOG_COL.RESEARCH_ID]);
+    if (!fId) continue;
+    var prev = lastRecordMap[fId];
+    var fDt  = new Date(fRow[LOG_COL.LOG_DATETIME]);
+    if (!prev || fDt > new Date(prev._dt)) {
+      lastRecordMap[fId] = {
+        vasBack:    fRow[LOG_COL.VAS_BACK],
+        vasLeg:     fRow[LOG_COL.VAS_LEG],
+        daysPostOp: fRow[LOG_COL.DAYS_POST_OP],
+        _dt:        fRow[LOG_COL.LOG_DATETIME]
+      };
+    }
+  }
+
+  // ── 一次讀取 PUSH_LOG，建立已發送 Set ───────────────────────
+  var pushLogData = logSheet.getDataRange().getValues();
+  var sentTodaySet = {};  // researchId → true（今天已 sent）
+  for (var p = 1; p < pushLogData.length; p++) {
+    var pRow = pushLogData[p];
+    if (pRow[PUSH_COL.STATUS] !== 'sent') continue;
+    var sentAt = new Date(pRow[PUSH_COL.SENT_AT]);
+    sentAt.setHours(0, 0, 0, 0);
+    if (sentAt.getTime() === today.getTime()) {
+      sentTodaySet[String(pRow[PUSH_COL.RESEARCH_ID])] = true;
+    }
+  }
 
   // 從第 2 列開始（跳過標頭）
   for (var i = 1; i < patients.length; i++) {
@@ -41,14 +75,14 @@ function dailyPushScheduler() {
     // 今天不是推播日則略過（不寫 log，避免 log 爆量）
     if (!isScheduledDay(daysPostOp)) continue;
 
-    // 防重複：今天已推播過
-    if (alreadySentToday(logSheet, researchId, today)) {
+    // 防重複：今天已推播過（純記憶體查詢）
+    if (sentTodaySet[String(researchId)]) {
       _appendPushLog(logSheet, researchId, daysPostOp, today, 'skipped', 'already_sent', '');
       continue;
     }
 
-    // 個人化訊息（帶入上次數據）
-    var lastRecord = getLastRecord(researchId);
+    // 個人化訊息（帶入上次數據，純記憶體查詢）
+    var lastRecord = lastRecordMap[String(researchId)] || null;
     var message = _buildPushMessage(researchId, daysPostOp, lastRecord);
 
     // 發送 Line 推播（附 Quick Reply 開始填寫按鈕）

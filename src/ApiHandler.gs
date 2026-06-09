@@ -133,6 +133,42 @@ function handleApiRequest_(e) {
         break;
       }
 
+      case 'searchPatient': {
+        var sq = params.query;
+        if (!sq) throw new Error('query 必填');
+        result = searchPatient_(sq);
+        break;
+      }
+
+      case 'getClinicCheckInInfo': {
+        var ccId = params.researchId;
+        if (!ccId) throw new Error('researchId 必填');
+        result = getClinicCheckInInfo_(ccId);
+        break;
+      }
+
+      case 'getImplants':
+        result = getImplants_();
+        break;
+
+      case 'saveImplant':
+        result = saveImplant_(params);
+        break;
+
+      case 'deleteImplant': {
+        var diCode = params.code;
+        if (!diCode) throw new Error('code 必填');
+        result = deleteImplant_(diCode);
+        break;
+      }
+
+      case 'deleteOperationRecord': {
+        var dorId = params.researchId;
+        if (!dorId) throw new Error('researchId 必填');
+        result = deleteOperationRecord_(dorId);
+        break;
+      }
+
       default:
         result = { error: '未知的 action：' + action };
     }

@@ -10,6 +10,15 @@ const sortKey = ref('researchId')
 const sortAsc = ref(true)
 const filterGroup = ref('')
 
+// Toast Notification
+const toast = ref({ show: false, msg: '', type: 'success' })
+let toastTimer = null
+function showToast(msg, type = 'success') {
+  clearTimeout(toastTimer)
+  toast.value = { show: true, msg, type }
+  toastTimer = setTimeout(() => { toast.value.show = false }, 3000)
+}
+
 onMounted(load)
 
 async function load() {
@@ -18,9 +27,11 @@ async function load() {
     const data = await getMcidData()
     summary.value  = data.summary  || {}
     patients.value = data.patients || []
+    showToast('數據已載入最新臨床記錄')
   } catch (e) {
     summary.value  = {}
     patients.value = []
+    showToast('載入失敗：' + e.message, 'danger')
   } finally {
     loading.value = false
   }
@@ -36,8 +47,8 @@ function sortBy(key) {
 }
 
 function sortIcon(key) {
-  if (sortKey.value !== key) return 'bi-arrow-down-up text-muted'
-  return sortAsc.value ? 'bi-sort-down-alt' : 'bi-sort-up-alt'
+  if (sortKey.value !== key) return 'bi-arrow-down-up text-muted opacity-50'
+  return sortAsc.value ? 'bi-sort-down-alt text-teal' : 'bi-sort-up-alt text-teal'
 }
 
 const filtered = computed(() => {
@@ -57,190 +68,222 @@ function fmt(v, unit = '') {
   return v + unit
 }
 
-function improveBadge(val, threshold) {
-  if (val === null || val === undefined || val === '') return ''
-  return val >= threshold ? 'bg-success' : val >= 0 ? 'bg-warning text-dark' : 'bg-danger'
+function getGroupBadgeStyle(group) {
+  if (group === 'line_bot') {
+    return 'background: var(--color-primary-light); color: var(--color-primary); border: 1px solid rgba(10, 92, 102, 0.2);'
+  } else if (group === 'control') {
+    return 'background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;'
+  } else {
+    return 'background: #fffbeb; color: #b45309; border: 1px solid #fef3c7;'
+  }
+}
+
+function getGroupLabel(group) {
+  return group === 'line_bot' ? 'Bot 組' : group === 'control' ? '對照組' : '部分介入'
 }
 </script>
 
 <template>
-  <div style="background:#f0f4f8; min-height:100vh; font-family:'Segoe UI',sans-serif">
+  <div style="background: var(--color-bg-base); min-height: 100vh; font-family: var(--font-family);">
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-dark px-3 py-2" style="background:linear-gradient(135deg,#1a73e8,#0d47a1)">
-      <span class="navbar-brand fw-bold">
-        <i class="bi bi-graph-up-arrow me-2"></i>MCID 達成分析
-      </span>
-      <div class="d-flex gap-2">
-        <RouterLink to="/"          class="btn btn-outline-light btn-sm"><i class="bi bi-house me-1"></i>後台</RouterLink>
-        <RouterLink to="/form"      class="btn btn-outline-light btn-sm"><i class="bi bi-pencil-square me-1"></i>填表</RouterLink>
-        <RouterLink to="/analytics" class="btn btn-outline-light btn-sm"><i class="bi bi-bar-chart-line me-1"></i>分析</RouterLink>
-      </div>
-    </nav>
 
-    <div class="container-fluid py-4 px-4">
+
+    <div class="container-fluid py-4 px-4 max-width-xl">
 
       <!-- Loading -->
       <div v-if="loading" class="text-center py-5">
-        <div class="spinner-border text-primary"></div>
-        <div class="mt-2 text-muted">載入中...</div>
+        <div class="spinner-border text-teal mb-3" style="color: var(--color-accent);" role="status">
+          <span class="visually-hidden">載入中...</span>
+        </div>
+        <div class="text-muted fw-medium">載入 MCID 分析數據中...</div>
       </div>
 
       <template v-else>
 
         <!-- 說明提示 -->
-        <div class="alert alert-info py-2 mb-3 small">
-          <i class="bi bi-info-circle me-1"></i>
-          MCID 定義：VAS 改善 ≥ 2.5 分；ODI 改善 ≥ 12.8%。PASS：術後 VAS_back ≤ 3。
-          術後數據優先取 D70–D84，否則取最後一筆已確認記錄。
-          <span v-if="summary.total < 15" class="text-danger fw-bold ms-2">
-            ⚠ 樣本量不足（n={{ summary.total }}），結論僅供參考，請勿用於正式發表。
-          </span>
+        <div class="alert alert-info border-0 shadow-sm p-3 mb-4 d-flex align-items-start gap-2.5" style="border-radius: 12px; background-color: #ecfeff; border-left: 4px solid var(--color-accent) !important; color: #0891b2;">
+          <i class="bi bi-info-circle-fill fs-5 mt-0.5" aria-hidden="true"></i>
+          <div>
+            <div class="fw-bold mb-1" style="color: var(--color-primary);">MCID 臨床評估定義</div>
+            <div class="small">
+              <strong>VAS 疼痛改善度</strong> 須大於等於 <span class="tabular-nums">2.5</span> 分；<strong>ODI 功能障礙改善度</strong> 須改善大於等於 <span class="tabular-nums">12.8%</span>；<strong>PASS 滿意狀態</strong> 定義為術後 <span class="font-monospace">VAS_back</span> 小於等於 <span class="tabular-nums">3</span> 分。
+              術後數據優先取 <span class="tabular-nums">D70–D84</span> 期間，無此期間記錄者取最近一次有效追蹤資料。
+              <span v-if="summary.total < 15" class="text-danger fw-bold ms-1">
+                <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> 臨床警示：樣本量不足（n = {{ summary.total }}），結論可能存在統計偏誤，請勿直接用於醫學學術發表。
+              </span>
+            </div>
+          </div>
         </div>
 
         <!-- 摘要卡片 -->
         <div class="row g-3 mb-4">
           <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm text-center py-3">
-              <div class="fs-2 fw-bold text-primary">{{ summary.total ?? '—' }}</div>
-              <div class="text-muted small">總病患數</div>
+            <div class="clinical-card p-3.5 d-flex flex-column align-items-center justify-content-center text-center" style="border-top: 4px solid var(--color-primary); min-height: 120px;">
+              <div class="fs-2 fw-bold text-teal tabular-nums" style="color: var(--color-primary);">{{ summary.total ?? '—' }}</div>
+              <div class="text-muted small mt-1">總追蹤個案數</div>
             </div>
           </div>
           <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm text-center py-3">
-              <div class="fs-2 fw-bold text-success">{{ summary.vasMcidPct ?? '—' }}%</div>
-              <div class="text-muted small">VAS MCID 達成率</div>
-              <div class="small text-muted">(n={{ summary.vasMcidN ?? 0 }})</div>
+            <div class="clinical-card p-3.5 d-flex flex-column align-items-center justify-content-center text-center" style="border-top: 4px solid var(--color-accent); min-height: 120px;">
+              <div class="fs-2 fw-bold text-success tabular-nums" style="color: #0d9488;">{{ summary.vasMcidPct ?? '—' }}%</div>
+              <div class="text-muted small mt-1">VAS MCID 達成率</div>
+              <div class="small text-muted font-monospace mt-0.5">(n={{ summary.vasMcidN ?? 0 }})</div>
             </div>
           </div>
           <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm text-center py-3">
-              <div class="fs-2 fw-bold" style="color:#9c27b0">{{ summary.odiMcidPct ?? '—' }}%</div>
-              <div class="text-muted small">ODI MCID 達成率</div>
-              <div class="small text-muted">(n={{ summary.odiMcidN ?? 0 }})</div>
+            <div class="clinical-card p-3.5 d-flex flex-column align-items-center justify-content-center text-center" style="border-top: 4px solid #8b5cf6; min-height: 120px;">
+              <div class="fs-2 fw-bold tabular-nums" style="color: #7c3aed;">{{ summary.odiMcidPct ?? '—' }}%</div>
+              <div class="text-muted small mt-1">ODI MCID 達成率</div>
+              <div class="small text-muted font-monospace mt-0.5">(n={{ summary.odiMcidN ?? 0 }})</div>
             </div>
           </div>
           <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm text-center py-3">
-              <div class="fs-2 fw-bold text-warning">{{ summary.passPct ?? '—' }}%</div>
-              <div class="text-muted small">PASS 達成率</div>
-              <div class="small text-muted">(n={{ summary.passN ?? 0 }})</div>
+            <div class="clinical-card p-3.5 d-flex flex-column align-items-center justify-content-center text-center" style="border-top: 4px solid #f59e0b; min-height: 120px;">
+              <div class="fs-2 fw-bold text-warning tabular-nums" style="color: #d97706;">{{ summary.passPct ?? '—' }}%</div>
+              <div class="text-muted small mt-1">PASS 達成率</div>
+              <div class="small text-muted font-monospace mt-0.5">(n={{ summary.passN ?? 0 }})</div>
             </div>
           </div>
         </div>
 
         <!-- 篩選列 -->
-        <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
-          <label class="form-label mb-0 fw-bold">介入組別：</label>
-          <div class="btn-group btn-group-sm">
-            <input type="radio" class="btn-check" id="gAll"      v-model="filterGroup" value="">
-            <label class="btn btn-outline-secondary" for="gAll">全部</label>
-            <input type="radio" class="btn-check" id="gBot"      v-model="filterGroup" value="line_bot">
-            <label class="btn btn-outline-primary"   for="gBot">Line Bot 組</label>
-            <input type="radio" class="btn-check" id="gCtrl"     v-model="filterGroup" value="control">
-            <label class="btn btn-outline-secondary" for="gCtrl">對照組</label>
-            <input type="radio" class="btn-check" id="gPartial"  v-model="filterGroup" value="partial">
-            <label class="btn btn-outline-warning"   for="gPartial">部分介入</label>
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 12px; background: #fff;">
+          <div class="card-body p-3 d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-2">
+              <span class="fw-bold small text-muted"><i class="bi bi-funnel me-1" aria-hidden="true"></i>篩選介入組別：</span>
+              <div class="d-flex gap-1.5 flex-wrap">
+                <button class="btn btn-sm px-3.5 py-1.5 fw-semibold transition-btn rounded-pill"
+                        :class="filterGroup === '' ? 'btn-teal text-white shadow-sm' : 'btn-light text-secondary border'"
+                        @click="filterGroup = ''">
+                  全部 ({{ patients.length }})
+                </button>
+                <button class="btn btn-sm px-3.5 py-1.5 fw-semibold transition-btn rounded-pill"
+                        :class="filterGroup === 'line_bot' ? 'btn-teal text-white shadow-sm' : 'btn-light text-secondary border'"
+                        @click="filterGroup = 'line_bot'">
+                  LINE Bot 組 ({{ patients.filter(p => p.group === 'line_bot').length }})
+                </button>
+                <button class="btn btn-sm px-3.5 py-1.5 fw-semibold transition-btn rounded-pill"
+                        :class="filterGroup === 'control' ? 'btn-teal text-white shadow-sm' : 'btn-light text-secondary border'"
+                        @click="filterGroup = 'control'">
+                  對照組 ({{ patients.filter(p => p.group === 'control').length }})
+                </button>
+                <button class="btn btn-sm px-3.5 py-1.5 fw-semibold transition-btn rounded-pill"
+                        :class="filterGroup === 'partial' ? 'btn-teal text-white shadow-sm' : 'btn-light text-secondary border'"
+                        @click="filterGroup = 'partial'">
+                  部分介入 ({{ patients.filter(p => p.group === 'partial').length }})
+                </button>
+              </div>
+            </div>
+            
+            <button class="btn btn-outline-teal btn-sm px-3 py-1.5 fw-medium d-flex align-items-center gap-1.5 transition-btn" @click="load" aria-label="重新整理數據">
+              <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>重新整理
+            </button>
           </div>
-          <button class="btn btn-outline-primary btn-sm ms-auto" @click="load">
-            <i class="bi bi-arrow-clockwise me-1"></i>重新載入
-          </button>
         </div>
 
         <!-- 資料表 -->
-        <div class="card border-0 shadow-sm">
+        <div class="clinical-card overflow-hidden">
           <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle" style="font-size:.85rem">
-              <thead style="background:#e8f0fe">
+            <table class="clinical-table mb-0" style="font-size: .86rem;">
+              <thead>
                 <tr>
-                  <th @click="sortBy('researchId')" style="cursor:pointer;white-space:nowrap">
-                    研究編號 <i :class="'bi ' + sortIcon('researchId')"></i>
+                  <th scope="col" @click="sortBy('researchId')" style="cursor: pointer; white-space: nowrap;" class="user-select-none">
+                    研究編號 <i :class="sortIcon('researchId')" aria-hidden="true"></i>
                   </th>
-                  <th @click="sortBy('group')" style="cursor:pointer">
-                    組別 <i :class="'bi ' + sortIcon('group')"></i>
+                  <th scope="col" @click="sortBy('group')" style="cursor: pointer; white-space: nowrap;" class="user-select-none">
+                    組別 <i :class="sortIcon('group')" aria-hidden="true"></i>
                   </th>
-                  <th @click="sortBy('lastDays')" style="cursor:pointer;white-space:nowrap">
-                    最後追蹤天 <i :class="'bi ' + sortIcon('lastDays')"></i>
+                  <th scope="col" @click="sortBy('lastDays')" style="cursor: pointer; white-space: nowrap;" class="user-select-none">
+                    追蹤天數 <i :class="sortIcon('lastDays')" aria-hidden="true"></i>
                   </th>
-                  <th class="text-center">術前→術後<br>VAS_back</th>
-                  <th @click="sortBy('vasBackImprove')" style="cursor:pointer" class="text-center">
-                    VAS改善 <i :class="'bi ' + sortIcon('vasBackImprove')"></i>
+                  <th scope="col" class="text-center" style="white-space: nowrap;">術前 → 術後 VAS</th>
+                  <th scope="col" @click="sortBy('vasBackImprove')" style="cursor: pointer; white-space: nowrap;" class="text-center user-select-none">
+                    VAS 改善 <i :class="sortIcon('vasBackImprove')" aria-hidden="true"></i>
                   </th>
-                  <th class="text-center">MCID<br>(VAS≥2.5)</th>
-                  <th class="text-center">術前→術後<br>ODI%</th>
-                  <th @click="sortBy('odiImprove')" style="cursor:pointer" class="text-center">
-                    ODI改善 <i :class="'bi ' + sortIcon('odiImprove')"></i>
+                  <th scope="col" class="text-center" style="white-space: nowrap;">VAS MCID</th>
+                  <th scope="col" class="text-center" style="white-space: nowrap;">術前 → 術後 ODI%</th>
+                  <th scope="col" @click="sortBy('odiImprove')" style="cursor: pointer; white-space: nowrap;" class="text-center user-select-none">
+                    ODI 改善 <i :class="sortIcon('odiImprove')" aria-hidden="true"></i>
                   </th>
-                  <th class="text-center">MCID<br>(ODI≥12.8%)</th>
-                  <th class="text-center">PASS</th>
-                  <th @click="sortBy('anchorQ')" style="cursor:pointer" class="text-center">
-                    PGIC <i :class="'bi ' + sortIcon('anchorQ')"></i>
+                  <th scope="col" class="text-center" style="white-space: nowrap;">ODI MCID</th>
+                  <th scope="col" class="text-center" style="white-space: nowrap;">PASS 狀態</th>
+                  <th scope="col" @click="sortBy('anchorQ')" style="cursor: pointer; white-space: nowrap;" class="text-center user-select-none">
+                    PGIC 指標 <i :class="sortIcon('anchorQ')" aria-hidden="true"></i>
                   </th>
-                  <th class="text-center">記錄筆數</th>
+                  <th scope="col" class="text-center" style="white-space: nowrap; width: 90px;">追蹤點數</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="filtered.length === 0">
-                  <td colspan="12" class="text-center text-muted py-4">無資料</td>
+                  <td colspan="12" class="text-center text-muted py-5">無符合條件的 MCID 達成記錄</td>
                 </tr>
                 <tr v-for="p in filtered" :key="p.researchId">
-                  <td class="fw-bold">{{ p.researchId }}</td>
+                  <td class="tabular-nums font-semibold"><strong>{{ p.researchId }}</strong></td>
                   <td>
-                    <span :class="p.group === 'line_bot' ? 'badge bg-primary'
-                                : p.group === 'control'  ? 'badge bg-secondary'
-                                                         : 'badge bg-warning text-dark'">
-                      {{ p.group === 'line_bot' ? 'Bot' : p.group === 'control' ? '對照' : '部分' }}
+                    <span class="badge" :style="getGroupBadgeStyle(p.group)">
+                      {{ getGroupLabel(p.group) }}
                     </span>
                   </td>
-                  <td class="text-muted">{{ fmt(p.lastDays, ' 天') }}</td>
-                  <td class="text-center">
-                    <span v-if="p.preVasBack !== '' && p.preVasBack !== null">
-                      {{ p.preVasBack }} → {{ fmt(p.postVasBack) }}
+                  <td class="tabular-nums text-muted">{{ fmt(p.lastDays, ' 天') }}</td>
+                  <td class="text-center tabular-nums">
+                    <span v-if="p.preVasBack !== '' && p.preVasBack !== null" class="d-inline-flex align-items-center gap-1">
+                      {{ p.preVasBack }} <i class="bi bi-arrow-right text-muted small" aria-hidden="true"></i> {{ fmt(p.postVasBack) }}
                     </span>
                     <span v-else class="text-muted">—</span>
                   </td>
-                  <td class="text-center">
+                  <td class="text-center tabular-nums font-semibold">
                     <span v-if="p.vasBackImprove !== null"
-                          :class="'badge ' + improveBadge(p.vasBackImprove, 2.5)">
+                          :class="p.vasBackImprove >= 2.5 ? 'text-success' : p.vasBackImprove >= 0 ? 'text-warning' : 'text-danger'">
                       {{ p.vasBackImprove > 0 ? '+' : '' }}{{ p.vasBackImprove }}
                     </span>
                     <span v-else class="text-muted">—</span>
                   </td>
                   <td class="text-center">
-                    <i v-if="p.lastDays !== null && p.vasMcid"    class="bi bi-check-circle-fill text-success fs-5"></i>
-                    <i v-else-if="p.lastDays !== null && !p.vasMcid" class="bi bi-x-circle text-danger fs-5"></i>
-                    <span v-else class="text-muted">—</span>
-                  </td>
-                  <td class="text-center">
-                    <span v-if="p.preOdi !== '' && p.preOdi !== null">
-                      {{ p.preOdi }}% → {{ fmt(p.postOdi, '%') }}
+                    <span v-if="p.lastDays !== null && p.vasMcid" class="badge" style="background: #e6fdf5; color: #0f766e; border: 1px solid #ccfbf1;">
+                      <i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>達成
+                    </span>
+                    <span v-else-if="p.lastDays !== null && !p.vasMcid" class="badge" style="background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2;">
+                      <i class="bi bi-x-circle-fill me-1" aria-hidden="true"></i>未達
                     </span>
                     <span v-else class="text-muted">—</span>
                   </td>
-                  <td class="text-center">
+                  <td class="text-center tabular-nums">
+                    <span v-if="p.preOdi !== '' && p.preOdi !== null" class="d-inline-flex align-items-center gap-1">
+                      {{ p.preOdi }}% <i class="bi bi-arrow-right text-muted small" aria-hidden="true"></i> {{ fmt(p.postOdi, '%') }}
+                    </span>
+                    <span v-else class="text-muted">—</span>
+                  </td>
+                  <td class="text-center tabular-nums font-semibold">
                     <span v-if="p.odiImprove !== null"
-                          :class="'badge ' + improveBadge(p.odiImprove, 12.8)">
+                          :class="p.odiImprove >= 12.8 ? 'text-success' : p.odiImprove >= 0 ? 'text-warning' : 'text-danger'">
                       {{ p.odiImprove > 0 ? '+' : '' }}{{ p.odiImprove }}%
                     </span>
                     <span v-else class="text-muted">—</span>
                   </td>
                   <td class="text-center">
-                    <i v-if="p.lastDays !== null && p.odiMcid"    class="bi bi-check-circle-fill text-success fs-5"></i>
-                    <i v-else-if="p.lastDays !== null && !p.odiMcid" class="bi bi-x-circle text-danger fs-5"></i>
-                    <span v-else class="text-muted">—</span>
-                  </td>
-                  <td class="text-center">
-                    <span v-if="p.lastDays !== null && p.pass !== null"
-                          :class="'badge ' + (p.pass ? 'bg-success' : 'bg-danger')">
-                      {{ p.pass ? 'Y' : 'N' }}
+                    <span v-if="p.lastDays !== null && p.odiMcid" class="badge" style="background: #e6fdf5; color: #0f766e; border: 1px solid #ccfbf1;">
+                      <i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>達成
+                    </span>
+                    <span v-else-if="p.lastDays !== null && !p.odiMcid" class="badge" style="background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2;">
+                      <i class="bi bi-x-circle-fill me-1" aria-hidden="true"></i>未達
                     </span>
                     <span v-else class="text-muted">—</span>
                   </td>
                   <td class="text-center">
-                    <span v-if="p.anchorQ" class="fw-bold">{{ p.anchorQ }}</span>
+                    <span v-if="p.lastDays !== null && p.pass !== null"
+                          class="badge"
+                          :style="p.pass ? 'background: #ecfeff; color: #0891b2; border: 1px solid #cffafe;' : 'background: #fff1f2; color: #e11d48; border: 1px solid #ffe4e6;'">
+                      {{ p.pass ? '滿意 (Y)' : '未滿意 (N)' }}
+                    </span>
                     <span v-else class="text-muted">—</span>
                   </td>
-                  <td class="text-center text-muted">{{ p.recordCount }}</td>
+                  <td class="text-center">
+                    <span v-if="p.anchorQ" class="fw-semibold font-monospace" :class="p.anchorQ >= 5 ? 'text-success' : 'text-secondary'">
+                      {{ p.anchorQ }}
+                    </span>
+                    <span v-else class="text-muted">—</span>
+                  </td>
+                  <td class="text-center tabular-nums text-muted font-monospace">{{ p.recordCount }}</td>
                 </tr>
               </tbody>
             </table>
@@ -250,9 +293,66 @@ function improveBadge(val, threshold) {
       </template>
     </div>
 
+    <!-- Toast container -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9000;">
+      <Transition name="toast-fade">
+        <div v-if="toast.show"
+             class="toast show align-items-center text-white border-0 shadow-lg px-2 py-1"
+             :class="`bg-${toast.type === 'danger' ? 'danger' : toast.type === 'warning' ? 'warning' : 'success'}`"
+             role="alert"
+             aria-live="assertive"
+             aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body fw-medium d-flex align-items-center gap-2">
+              <i v-if="toast.type === 'success'" class="bi bi-check-circle-fill" aria-hidden="true"></i>
+              <i v-else-if="toast.type === 'warning'" class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+              <i v-else class="bi bi-x-circle-fill" aria-hidden="true"></i>
+              {{ toast.msg }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto shadow-none"
+                    @click="toast.show = false" aria-label="關閉通知"></button>
+          </div>
+        </div>
+      </Transition>
+    </div>
+
   </div>
 </template>
 
 <style scoped>
-th { white-space: nowrap; }
+.transition-btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-teal {
+  background-color: var(--color-primary);
+  color: #fff;
+  border: 1px solid var(--color-primary);
+}
+.btn-teal:hover {
+  background-color: #063e45;
+  color: #fff;
+}
+.btn-outline-teal {
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  background: transparent;
+}
+.btn-outline-teal:hover {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+.toast-fade-enter-active, .toast-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast-fade-enter-from, .toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.btn-close {
+  background-size: 0.8rem;
+  transition: transform 0.15s;
+}
+.btn-close:hover {
+  transform: rotate(90deg);
+}
 </style>

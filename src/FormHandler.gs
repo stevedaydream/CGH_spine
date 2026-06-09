@@ -66,22 +66,28 @@ function addFollowUpRecord_(p) {
   var daysPostOp = daysDiff_(opRecord.opDate, now);
   var logId      = generateLogId();
 
-  sheet.appendRow([
-    logId,
-    p.researchId,
-    Utilities.formatDate(now, 'Asia/Taipei', 'yyyy/MM/dd HH:mm:ss'),
-    daysPostOp,
-    toNum_(p.vasBack),
-    toNum_(p.vasLeg),
-    '',                          // odi_description（門診留空）
-    p.woundStatus    || '',
-    '',                          // raw_message
-    'direct',                    // record_type
-    true,                        // confirmed
-    toNum_(p.odiScore),          // odi_score 0-100（新）
-    p.pass           || '',      // pass Y/N（新）
-    toNum_(p.anchorQ)            // anchor_q 1-7（新）
-  ]);
+  var lock = LockService.getScriptLock();
+  try {
+    lock.tryLock(10000);
+    sheet.appendRow([
+      logId,
+      p.researchId,
+      Utilities.formatDate(now, 'Asia/Taipei', 'yyyy/MM/dd HH:mm:ss'),
+      daysPostOp,
+      toNum_(p.vasBack),
+      toNum_(p.vasLeg),
+      '',                          // odi_description（門診留空）
+      p.woundStatus    || '',
+      '',                          // raw_message
+      'direct',                    // record_type
+      true,                        // confirmed
+      toNum_(p.odiScore),          // odi_score 0-100（新）
+      p.pass           || '',      // pass Y/N（新）
+      toNum_(p.anchorQ)            // anchor_q 1-7（新）
+    ]);
+  } finally {
+    lock.releaseLock();
+  }
 
   return { success: true, daysPostOp: daysPostOp, logId: logId, odiScore: toNum_(p.odiScore) };
 }
@@ -162,6 +168,104 @@ function _upsertPrivacyChartNumber_(researchId, chartNumber) {
     sheet.appendRow([researchId, '', chartNumber]);
   } catch (e) {
     Logger.log('[_upsertPrivacyChartNumber_] ' + e.message);
+  }
+}
+
+// ============================================================
+// 耗材管理
+// ============================================================
+
+function getImplants_() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET.IMPLANT);
+  if (!sheet) return { items: [] };
+  var data = sheet.getDataRange().getValues().slice(1);
+  var items = data
+    .filter(function(r) { return !!r[0]; })
+    .map(function(r) {
+      return {
+        code:     String(r[0] || ''),
+        name:     String(r[1] || ''),
+        category: String(r[2] || ''),
+        brand:    String(r[3] || ''),
+        note:     String(r[4] || '')
+      };
+    });
+  return { items: items };
+}
+
+function saveImplant_(p) {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET.IMPLANT);
+  if (!sheet) throw new Error('找不到耗材代碼表');
+  if (!p.code) throw new Error('耗材代碼必填');
+
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(p.code)) {
+      sheet.getRange(i + 1, 1, 1, 5).setValues([[
+        p.code, p.name || '', p.category || '', p.brand || '', p.note || ''
+      ]]);
+      return { success: true, action: 'updated' };
+    }
+  }
+  sheet.appendRow([p.code, p.name || '', p.category || '', p.brand || '', p.note || '']);
+  return { success: true, action: 'created' };
+}
+
+function deleteImplant_(code) {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET.IMPLANT);
+  if (!sheet) throw new Error('找不到耗材代碼表');
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(code)) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  throw new Error('找不到耗材代碼：' + code);
+}
+
+// ============================================================
+// 刪除追蹤個案
+// ============================================================
+
+function deleteOperationRecord_(researchId) {
+  if (!researchId) throw new Error('researchId 必填');
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET.OPERATION);
+  var lock  = LockService.getScriptLock();
+  try {
+    lock.tryLock(10000);
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][OP_COL.RESEARCH_ID]) === String(researchId)) {
+        sheet.deleteRow(i + 1);
+        _deletePrivacyRow_(researchId);
+        return { success: true };
+      }
+    }
+    throw new Error('找不到研究編號：' + researchId);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function _deletePrivacyRow_(researchId) {
+  var privacySheetId = getConfig_('PRIVACY_TABLE_ID');
+  if (!privacySheetId) return;
+  try {
+    var sheet = SpreadsheetApp.openById(privacySheetId).getSheets()[0];
+    var data  = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][PRIVACY_COL.RESEARCH_ID]) === String(researchId)) {
+        sheet.deleteRow(i + 1);
+        return;
+      }
+    }
+  } catch (e) {
+    Logger.log('[_deletePrivacyRow_] ' + e.message);
   }
 }
 

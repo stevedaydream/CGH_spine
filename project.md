@@ -1,6 +1,6 @@
 # 專案藍圖：智慧化脊椎手術追蹤系統
 
-> **版本**：V2.7（Vue 3 + GAS + Google Sheets）｜**更新日期**：2026-04-15
+> **版本**：V3.0（Vue 3 + GAS + Google Sheets）｜**更新日期**：2026-06-05
 > **定位**：Vue 3（Cloudflare Pages）為醫護前端、Google Apps Script 為後端 API、Google Sheets 為資料庫、LINE Bot 為病患輸入介面的臨床數據追蹤方案。
 
 ## 專案目的
@@ -40,12 +40,14 @@
 ```
 ┌──────────────────────────────────────────────────────────┐
 │  Vue 3 + Vite（Cloudflare Pages）                         │
-│  ├ DashboardView  — 醫護後台（病患詳情 Modal + ODI展開）   │
-│  ├ FormView       — 填表（Tab A 手術登錄 / Tab B 回診記錄） │
-│  ├ AnalyticsView  — 分析儀表板（Chart.js 圖表）            │
-│  ├ McidView       — MCID / PASS / PGIC 統計儀表板         │
-│  ├ ExportView     — 資料匯出（篩選 + 預覽 + CSV 下載）     │
-│  └ BotManagementView — LINE Bot 回覆設定 + 衛教 QA 管理    │
+│  ├ DashboardView     — 醫護後台（病患列表 + AI待確認 + 刪除記錄）│
+│  ├ FormView          — 手術登錄（新增追蹤個案，單頁）            │
+│  ├ AnalyticsView     — 分析儀表板（Chart.js 圖表）               │
+│  ├ McidView          — MCID / PASS / PGIC 統計儀表板            │
+│  ├ ExportView        — 資料匯出（篩選 + 預覽 + CSV 下載）        │
+│  ├ BotManagementView — 系統設定（Bot回覆 + 衛教QA + 耗材管理）   │
+│  ├ ClinicCheckInView — 回診登記（自動補全搜尋 + 快速填表）        │
+│  └ DemoView          — 一頁式角色 UX 演示（醫師/護理師/病患）     │
 └────────────────┬─────────────────────────────────────────┘
                  │ HTTPS fetch（JSON）
 ┌────────────────▼─────────────────────────────────────────┐
@@ -85,12 +87,14 @@
 ### 目前頁面結構
 
 ```
-/ (DashboardView)                  — 醫護後台（病患詳情 Modal）
-/form (FormView)                   — 填表介面
+/ (DashboardView)                  — 醫護後台（病患詳情 Modal + AI待確認 + 刪除記錄）
+/form (FormView)                   — 手術登錄（新增追蹤個案，單頁）
 /analytics (AnalyticsView)         — 分析儀表板
 /mcid (McidView)                   — MCID / PASS / PGIC 統計
 /export (ExportView)               — 資料匯出
-/bot-management (BotManagementView)— LINE Bot 回覆設定 + 衛教 QA 管理
+/bot-management (BotManagementView)— 系統設定（Bot回覆 + 衛教QA + 耗材管理）
+/clinic (ClinicCheckInView)        — 回診登記（護理師常用入口，自動補全搜尋）
+/demo (DemoView)                   — 角色 UX 演示頁（報告用）
 ```
 
 ### DashboardView（醫護後台）
@@ -113,17 +117,18 @@
 - 完整度 = 實填次數 / 應填次數，依推播排程天數計算
 - 每列「詳情」按鈕開啟病患詳情 Modal
 - **病歷號行內編輯**：點鉛筆圖示 → 輸入框（Enter 儲存 / Esc 取消）→ 呼叫 `updateChartNumber` API → 寫入個資對照表
+- **刪除追蹤個案**：垃圾桶圖示 → confirm 確認對話框 → `deleteOperationRecord` API → 同時移除手術記錄表列與個資對照表列（LockService 保護）
 
 **病患詳情 Modal（`getPatientDetail`）：**
 - 顯示手術基本資料（術式、主刀、節段、術前 VAS/ODI）
 - 所有術後追蹤記錄（日期、術後天數、VAS 背/腿、ODI%、PASS、PGIC、來源）
 - ODI% 可點擊展開 Q1–Q10 各題分數與選項文字（如「1 - 輕微疼痛」）
 
-### FormView（填表）
+### FormView（手術登錄 / 新增追蹤個案）
 
-Bootstrap Tabs 分兩頁：
+單頁設計（已移除原 Tab B 回診記錄，回診功能統一由 ClinicCheckInView 負責）。
 
-**Tab A — 新病患手術登錄（`addOperationRecord`）**
+**手術登錄（`addOperationRecord`）**
 
 | 區塊 | 欄位 |
 |------|------|
@@ -133,22 +138,11 @@ Bootstrap Tabs 分兩頁：
 | 術前 VAS | VAS 背 / VAS 腿（VasInput 元件，0–10 按鈕）|
 | 進階（可展開）| 術前 ODI、SVA、Cobb、Screw 代碼、其他耗材、手術時間、EBL、術中併發症 |
 
-**Tab B — 門診回診記錄（`addFollowUpRecord`）**
+送出成功後：顯示綁定碼（LINE 掃碼用）並提供「前往回診登記」RouterLink（→ `/clinic`）。
 
-| 欄位 | 說明 |
-|------|------|
-| 研究編號 | datalist 選擇（已有病患）|
-| VAS 背 / 腿 | VasInput 元件 |
-| ODI 分數 | 數字 0–100% |
-| PASS | Y / N 切換按鈕 |
-| PGIC | 整體改善感受 1–7（anchor_q）|
-| 傷口狀況 | 文字 |
+### BotManagementView（系統設定）
 
-> Tab A 送出後自動帶入 Tab B 的研究編號，便於術後立即填第一筆回診記錄。
-
-### BotManagementView（LINE Bot 回覆設定 + 衛教 QA 管理）
-
-**後台管理頁，對應路由 `/bot-management`，Navbar「Bot管理」連結。**
+**後台管理頁，對應路由 `/bot-management`，Navbar「系統設定」Hover 下拉選單顯示三個 Tab 標籤。**
 
 **Tab 1：LINE Bot 回覆設定**
 - Sub-tab「系統訊息」：顯示所有系統/問卷步驟訊息，含用途說明、觸發方式、內容預覽、啟用 toggle、編輯
@@ -164,6 +158,39 @@ Bootstrap Tabs 分兩頁：
 - QA 列表：序 / 類別 / 問題 / 回答預覽 / 適用天數 / 影片 / PDF / 啟用開關 / 編輯 / 刪除
 - 新增 / 編輯 Modal：類別、順序、天數範圍、問題、回答、影片 URL、PDF URL、啟用開關
 - `toggleActive` 單擊即存，`saveHealthEdu` 新增/更新，`deleteHealthEdu` 刪除
+
+**Tab 3：耗材管理**
+- 依類別（Cage / Screw / Bone Graft / Cement）分群顯示
+- 列表欄位：類別 / 代碼 / 品名 / 廠牌 / 備註 / 編輯 / 刪除
+- 新增 / 編輯 Modal：類別（下拉）、代碼、品名、廠牌、備註
+- `getImplants` 載入全清單，`saveImplant` 新增/更新（by code），`deleteImplant` 刪除
+- 資料來源：Sheets 分頁 1（耗材代碼表）
+
+### ClinicCheckInView（回診登記）
+
+**護理師常用入口，對應路由 `/clinic`。**
+
+**病患搜尋（自動補全）：**
+- 文字框輸入部分病歷號或研究編號（如 `001` → 建議顯示 `SP-2026-001`）
+- 使用 `getFormOptions` 回傳的 patientIds 清單，前端以 `includes()` 比對（非 prefix-only）
+- 點擊建議項目觸發 `searchPatient` API 查詢（同時支援 researchId / chartNumber 模糊查詢）
+- `@mousedown.prevent` 防止 input blur 早於 click 觸發
+
+**綁定碼：**
+- 查詢後顯示病患現有綁定碼（`getClinicCheckInInfo`），若無則自動產生
+
+**快速回診填表（`addFollowUpRecord`）：**
+
+| 欄位 | 說明 |
+|------|------|
+| 研究編號 | 搜尋後自動帶入 |
+| VAS 背 / 腿 | VasInput 元件（0–10）|
+| ODI 分數 | 數字 0–100% |
+| PASS | Y / N 切換按鈕 |
+| PGIC | 整體改善感受 1–7（anchor_q）|
+| 傷口狀況 | 文字欄位（wound_status）|
+
+---
 
 ### ExportView（資料匯出）
 
@@ -193,6 +220,34 @@ Bootstrap Tabs 分兩頁：
 
 0–10 的按鈕群組，選中後高亮，雙向綁定 v-model。
 
+### McidView（MCID 達成分析）
+
+MCID/PASS/PGIC 達成分析儀表板，提供臨床研究指標視覺化。
+
+* **分組篩選器**：提供「全部、LINE Bot 組、對照組、部分介入」四種組別的膠囊按鈕篩選。
+* **指標統計卡片**：顯示各組別之總案例數、背痛/腿痛 MCID 達成率、PASS 滿意率等臨床指標。
+* **數據明細表**：支援欄位（研究編號、手術日期、術後天數、背痛/腿痛 VAS 改善、MCID 狀態等）的互動式排序升降冪箭頭。
+* **格式化與設計**：數值與百分比啟用 `tabular-nums`，MCID/PASS 達成狀態採用柔和紅綠色調標記。
+
+### DemoView（功能演示環境）
+
+多角色情境互動模擬器，用於學術報告或功能演練。
+
+* **左側步驟導航**：以時間軸（Timeline）垂直步進引導，模擬「醫師後台」、「護理師回診登記」、「病患 LINE Bot」業務流程。
+* **右側病患手機 Mockup**：採用高質感毛玻璃手機外殼（Glassmorphism Frame）與綠色 LINE Bot 對話視窗，模擬病患真實填寫 VAS/ODI 選項。
+* **AI 臨床資料暫存驗證**：模擬 LINE 訊息傳入後，以 AI 提取 VAS 分數並呈現在待確認卡片上，支援點擊一鍵核准寫入。
+
+### AppNavbar（全域響應式導覽列）
+
+解決手機版面頂部導覽列擁擠問題之響應式導覽組件。
+
+* **桌面版配置（寬度 >= 992px）**：頂部固定漸層導覽列，顯示當前頁面大標題與副標題，按鈕包含 Hover 效果及 Active 狀態。
+* **手機版配置（寬度 < 992px）**：改為底部固定毛玻璃容器（`fixed-bottom` + Backdrop Blur 16px），搭載橫向滾動（Swipeable Row）之膠囊功能鍵列。
+* **相容性設計**：
+  * 使用 `env(safe-area-inset-bottom)` 自動避開手機系統底部虛擬按鍵列。
+  * 主內容容器 `.main-content` 於手機版面自動套用 `padding-bottom: 110px` 避免內容遮擋。
+  * 路由切換使用 Vue Router `route.path` 動態比對，高亮對應選單。
+
 ---
 
 ## 3. GAS 後端（已實作）
@@ -203,9 +258,9 @@ Bootstrap Tabs 分兩頁：
 |--------|------|---------|
 | `getDashboardData` | pending 記錄 + 病患列表 + 摘要 | DashboardView |
 | `getAnalyticsData` | 圖表資料 + 完整度 | AnalyticsView |
-| `getFormOptions` | 病患 ID 列表、Cage 清單、下一編號 | FormView |
-| `addOperationRecord` | 寫入手術記錄表 | FormView Tab A |
-| `addFollowUpRecord` | 寫入術後追蹤日誌（直接，confirmed=TRUE）| FormView Tab B |
+| `getFormOptions` | 病患 ID 列表、Cage 清單、下一編號 | FormView / ClinicCheckInView |
+| `addOperationRecord` | 寫入手術記錄表 + 個資對照表 | FormView |
+| `addFollowUpRecord` | 寫入術後追蹤日誌（confirmed=TRUE）| ClinicCheckInView |
 | `approveRecord` | AI 暫存 → 追蹤日誌 | DashboardView |
 | `rejectRecord` | 標記 rejected | DashboardView |
 | `exportCsv` | 匯出 confirmed=TRUE 資料至 Drive | AnalyticsView |
@@ -213,12 +268,18 @@ Bootstrap Tabs 分兩頁：
 | `getPatientDetail` | 單一病患所有術後記錄（含 ODI 各題明細、病歷號） | DashboardView |
 | `getExportData` | 依 researchId / days / fields 篩選資料（含病歷號欄） | ExportView |
 | `updateChartNumber` | 更新指定病患的病歷號至個資對照表 | DashboardView |
+| `deleteOperationRecord` | 刪除手術記錄表列 + 個資對照表列（LockService）| DashboardView |
 | `getHealthEdu` | 讀取所有衛教 QA 記錄 | BotManagementView Tab2 |
 | `saveHealthEdu` | 新增或更新衛教 QA 記錄（有 id → update，無 → append）| BotManagementView Tab2 |
 | `deleteHealthEdu` | 刪除指定衛教 QA 記錄（by id）| BotManagementView Tab2 |
 | `getLineReply` | 讀取 Sheet 12 所有 Bot 回覆設定 | BotManagementView Tab1 |
 | `saveLineReply` | 更新（有 id）或新增自訂關鍵字（無 id） | BotManagementView Tab1 |
 | `deleteLineReply` | 刪除自訂關鍵字（系統訊息不可刪）| BotManagementView Tab1 |
+| `searchPatient` | 依 researchId 或 chartNumber 查詢病患（含最後 VAS）| ClinicCheckInView |
+| `getClinicCheckInInfo` | 病患摘要 + 綁定碼（自動產生/取現有）| ClinicCheckInView |
+| `getImplants` | 讀取所有耗材記錄（分頁1）| BotManagementView Tab3 |
+| `saveImplant` | 新增或更新耗材（by code）| BotManagementView Tab3 |
+| `deleteImplant` | 刪除指定耗材（by code）| BotManagementView Tab3 |
 
 ### LINE Bot（doPost）✅ 已實作
 
@@ -621,16 +682,20 @@ research_id: SP-2026-001   ←→       姓名、LINE UID、病歷號
 ## 9. 升級路徑
 
 ```
-現在（V2.7）                         →  未來（V4 完整版）
+現在（V2.9）                          →  未來（V4 完整版）
 ────────────────────────────────       ──────────────────────────
 Vue 3 + Cloudflare Pages           →  同（持續優化）
 GAS Web App（REST API）            →  Cloudflare Workers（更快，無 cold start 問題）
 Google Sheets（Append-only 長表）   →  Firebase Firestore（即時同步）
 LINE Bot 14 步 Quick Reply ✅       →  同（持續優化問卷體驗）
 問卷暫停／繼續 ✅                   →  同
-Bot管理後台（回覆設定 + 衛教QA）✅  →  影片縮圖預覽、QA 評分回饋
+系統設定後台（Bot回覆+衛教QA+耗材）✅→  影片縮圖預覽、QA 評分回饋
 Gemini QA 比對 + context injection ✅→  Gemini 多輪對話記憶（gemini-2.5-flash-lite）
 MCID Vue Tab ✅                     →  Kaplan-Meier 視覺化
+回診登記自動補全搜尋 ✅              →  同
+刪除追蹤個案 ✅                     →  稽核 Log（記錄刪除者 + 時間）
+耗材 CRUD 前端管理 ✅               →  耗材與手術效益統計整合
+單科別（骨科脊椎）✅                →  多科別多租戶架構（見第 10 章）
 ```
 
 ### 待規劃事項
@@ -640,6 +705,78 @@ MCID Vue Tab ✅                     →  Kaplan-Meier 視覺化
 | 統計分析分頁（Sheets 公式）| Google Sheets |
 | Kaplan-Meier PASS 達成天數曲線 | McidView（前端 Chart）|
 | LMM 原始資料匯出（SPSS 相容）| WeeklyAnalysis.gs |
+| 表單設定表（量表動態渲染）| GAS Config Sheet + FormView |
+| 多科別中央管理介面 | 新 Vue 路由 `/admin` |
+
+---
+
+## 10. 多科別推廣架構（規劃中）
+
+> **現況**：系統以骨科脊椎為 Pilot，驗證完成後可標準化複製至其他科別。
+
+### 部署模型
+
+採用「**各科別獨立資料、統一程式維護**」模型：
+
+```
+開發者電腦（clasp 統一推送）
+│
+├─ .clasprc-ortho.json      ← 骨科 Google 帳號 OAuth token
+├─ .clasprc-cardiac.json    ← 心臟外科 Google 帳號 OAuth token
+├─ .clasprc-joint.json      ← 關節科 Google 帳號 OAuth token
+│
+└─ GAS_push_deploy.bat（多帳號迴圈推送）
+    ↓ clasp --auth <token> push && deploy
+    ↓ 推送相同程式碼到各科別的 GAS 專案
+```
+
+各科別資料存於**該科別自己的 Google 帳號**下的 Sheets，開發者僅持有程式碼寫入權（Editor），無法存取臨床資料，法律責任清楚。
+
+### 各科別獨立資源
+
+| 資源 | 所屬帳號 | 說明 |
+|------|---------|------|
+| Google Sheets | 各科別自有帳號 | 資料完全隔離，科別自行管控 |
+| GAS 專案 | 各科別自有帳號 | 開發者加為 Editor 以便推送更新 |
+| Cloudflare Pages | 開發者帳號（或共用）| 前端可共用，以 `?dept=cardiac` 區分 |
+| LINE Bot OA | 各科別自申請 | 各科病患加入各自的 LINE OA |
+
+### 新科別建立 SOP（標準化流程）
+
+1. **科別申請** — 科別主管提出需求，確認量表組合（VAS / ODI / 自訂）
+2. **帳號授權** — 科別用自己的 Google 帳號建立 Sheets + GAS，並將開發者加為 Editor
+3. **一鍵初始化** — 開發者執行 `SheetSetup.gs` 建立標準 12 個分頁
+4. **表單設定** — 在「表單設定表」設定該科別啟用的量表與題目
+5. **LINE Bot 設定** — 科別申請 LINE OA，填入 `LINE_CHANNEL_ACCESS_TOKEN` 等 Script Properties
+6. **部署** — 開發者執行 BAT 推送程式碼並部署
+7. **上線驗收** — 試填一筆問卷、確認推播與儀表板正常
+
+### 表單動態設定（待實作）
+
+在每個科別的 Sheets 新增「表單設定表」，定義啟用的量表：
+
+| 問題ID | 標籤 | 類型 | 量表範圍 | 必填 | 啟用 |
+|--------|------|------|---------|------|------|
+| vas_back | 背部疼痛 | VAS | 0–10 | Y | Y |
+| vas_leg | 腿部疼痛 | VAS | 0–10 | N | Y |
+| odi | 功能障礙指數 | ODI | 10題 | N | Y |
+| dyspnea | 呼吸困難 | VAS | 0–10 | Y | N（心外科才開啟）|
+| kccq | 心臟功能 | KCCQ | 自訂 | N | N（心外科才開啟）|
+
+Vue 表單依此設定表動態渲染，不同科別無需修改前端程式碼。
+
+### 未來架構升級時機
+
+當科別數量 > 5 或需跨院推廣時，GAS 架構的限制會顯現，建議評估升級：
+
+| 層 | 現況（GAS）| 升級方向 |
+|----|-----------|---------|
+| 後端 | GAS Web App（每帳號獨立）| Cloudflare Workers（單一後端，tenant_id 分流）|
+| 資料庫 | Google Sheets（各帳號）| Supabase / D1（Row-level Security 隔離）|
+| 維護 | clasp 多帳號 push | CI/CD 自動化部署 |
+| 商業模式 | 院內研究計畫 | 評估設公司 + 醫院簽約 |
+
+> **建議時程**：以骨科脊椎為 Pilot（現在）→ 院內第二科別驗證（2026 Q3）→ 評估跨院推廣可行性（2026 Q4）
 
 ---
 

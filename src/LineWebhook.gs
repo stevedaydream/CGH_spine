@@ -112,7 +112,7 @@ function _handleTextMessage(event) {
       );
       return;
     }
-    _startQuestionnaire(replyToken, lineUid, researchId, state.rowIndex, opRecord);
+    _startQuestionnaire(replyToken, lineUid, researchId, state.rowIndex, opRecord, RS);
     return;
   }
 
@@ -128,7 +128,7 @@ function _handleTextMessage(event) {
 
   // 重新開始（清除暫存，從頭填）
   if (rawMessage === '重新開始' && state.step === 'paused') {
-    _startQuestionnaire(replyToken, lineUid, researchId, state.rowIndex, opRecord);
+    _startQuestionnaire(replyToken, lineUid, researchId, state.rowIndex, opRecord, RS);
     return;
   }
 
@@ -194,14 +194,15 @@ function _handleTextMessage(event) {
 }
 
 // ── 問卷啟動 ──────────────────────────────────────────────────
-function _startQuestionnaire(replyToken, lineUid, researchId, rowIndex, opRecord) {
+// RS（選填）：呼叫端已載入的 _loadReplySettings() 結果，避免重複讀取 Sheet 12
+function _startQuestionnaire(replyToken, lineUid, researchId, rowIndex, opRecord, RS) {
   var daysPostOp = daysDiff_(opRecord.opDate, new Date());
   var tpTarget   = 'D' + daysPostOp;
   var sessionData = { researchId: researchId };
 
   _saveState(rowIndex, lineUid, researchId, 'vas_back', sessionData, tpTarget);
 
-  var RS     = _loadReplySettings();
+  if (!RS) RS = _loadReplySettings();
   var bubble = _buildFlexBubbleForStep('vas_back', 0, '好的！開始今天（術後第 ' + daysPostOp + ' 天）的問卷 📋', RS);
   replyWithFlex(replyToken, '問卷 1/' + QUESTION_STEPS.length + '：背部疼痛評分', bubble);
 }
@@ -229,7 +230,7 @@ function _handleQuestionnaireStep(replyToken, lineUid, state, rawMessage, RS) {
 
   if (nextIdx >= QUESTION_STEPS.length) {
     // 所有題目完成
-    _completeQuestionnaire(replyToken, lineUid, state.rowIndex, sessionData, state.tpTarget);
+    _completeQuestionnaire(replyToken, lineUid, state.rowIndex, sessionData, state.tpTarget, RS);
     return;
   }
 
@@ -241,7 +242,8 @@ function _handleQuestionnaireStep(replyToken, lineUid, state, rawMessage, RS) {
 }
 
 // ── 問卷完成：寫入 Sheets ─────────────────────────────────────
-function _completeQuestionnaire(replyToken, lineUid, rowIndex, sessionData, tpTarget) {
+// RS（選填）：呼叫端已載入的 _loadReplySettings() 結果，避免重複讀取 Sheet 12
+function _completeQuestionnaire(replyToken, lineUid, rowIndex, sessionData, tpTarget, RS) {
   var researchId = sessionData.researchId;
   var opRecord   = getOperationRecord(researchId);
   var now        = new Date();
@@ -257,36 +259,40 @@ function _completeQuestionnaire(replyToken, lineUid, rowIndex, sessionData, tpTa
 
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET.FOLLOW_UP);
-  sheet.appendRow([
-    logId,
-    researchId,
-    Utilities.formatDate(now, 'Asia/Taipei', 'yyyy/MM/dd HH:mm:ss'),
-    daysPostOp,
-    sessionData.vas_back !== undefined ? sessionData.vas_back : '',
-    sessionData.vas_leg  !== undefined ? sessionData.vas_leg  : '',
-    '',            // odi_description
-    '',            // wound_status
-    'LINE問卷',    // raw_message
-    'direct',      // record_type
-    true,          // confirmed
-    odiScore,      // odi_score
-    sessionData.pass     || '',
-    sessionData.anchor_q || ''
-  ]);
 
-  // 寫入 ODI 明細表（LINE Bot 問卷才有各題分數）
-  _writeOdiDetail(ss, logId, researchId, now, daysPostOp, sessionData, odiRaw, odiScore);
+  var lock = LockService.getScriptLock();
+  try {
+    lock.tryLock(10000);
+    sheet.appendRow([
+      logId,
+      researchId,
+      Utilities.formatDate(now, 'Asia/Taipei', 'yyyy/MM/dd HH:mm:ss'),
+      daysPostOp,
+      sessionData.vas_back !== undefined ? sessionData.vas_back : '',
+      sessionData.vas_leg  !== undefined ? sessionData.vas_leg  : '',
+      '',            // odi_description
+      '',            // wound_status
+      'LINE問卷',    // raw_message
+      'direct',      // record_type
+      true,          // confirmed
+      odiScore,      // odi_score
+      sessionData.pass     || '',
+      sessionData.anchor_q || ''
+    ]);
+
+    // 寫入 ODI 明細表（LINE Bot 問卷才有各題分數）
+    _writeOdiDetail(ss, logId, researchId, now, daysPostOp, sessionData, odiRaw, odiScore);
+  } finally {
+    lock.releaseLock();
+  }
 
   _clearState(rowIndex, lineUid);
 
-  // 問卷完成後推送適用衛教（延遲發送，先回覆問卷結果）
-  _pushHealthEduAfterQuestionnaire(lineUid, researchId, daysPostOp);
+  // 預先載入適用衛教（一次讀取），再推送
+  var qaItems = _loadActiveQaItems(daysPostOp);
+  _pushHealthEduAfterQuestionnaire(lineUid, researchId, daysPostOp, qaItems);
 
-  var anchorLabel  = _getAnchorLabel(sessionData.anchor_q);
-  var passLabel    = sessionData.pass === 'Y' ? '✅ 可接受' : '❌ 還不滿意';
-  var odiSeverity  = _getOdiSeverity(odiScore);
-
-  var RS = _loadReplySettings();
+  if (!RS) RS = _loadReplySettings();
   replyLineMessage(replyToken, _fillPlaceholders(
     _getReplyContent(RS, 'questionnaire_complete',
       '✅ 問卷填寫完成！感謝您的回報。\n\n術後第 {daysPostOp} 天記錄已儲存：\n  背痛：{vasBack} 分\n  腿痛：{vasLeg} 分\n  ODI：{odiScore}%\n\n如有任何不適請聯絡門診：02-2648-2121 轉 5032\n感謝您的配合，祝您早日康復 🌿'),
@@ -463,8 +469,9 @@ function _loadActiveQaItems(daysPostOp) {
 }
 
 // ── 問卷完成後推送適用衛教 ────────────────────────────────────
-function _pushHealthEduAfterQuestionnaire(lineUid, researchId, daysPostOp) {
-  var items = _loadActiveQaItems(daysPostOp);
+// items（選填）：呼叫端已載入的 QA 清單，避免重複讀取 Sheet 11
+function _pushHealthEduAfterQuestionnaire(lineUid, researchId, daysPostOp, items) {
+  if (!items) items = _loadActiveQaItems(daysPostOp);
   if (items.length === 0) return;
 
   // 每類別取第一筆，最多 4 類
